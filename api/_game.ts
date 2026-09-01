@@ -176,6 +176,12 @@ export function passTurn(room: Room, playerId: string, token: string) {
   if (player.team !== room.turnTeam) throw new ApiError(403, "Not your turn.");
   if (!room.askedThisTurn) throw new ApiError(400, "Ask your question before passing.");
 
+  const eliminated = player.team === "Red" ? room.redEliminated : room.blueEliminated;
+  const crossed = player.team === "Red" ? room.redCrossed : room.blueCrossed;
+  const remainingCount = characters.filter((c) => !eliminated.includes(c.id) && !crossed.includes(c.id)).length;
+  if (remainingCount === 1) throw new ApiError(400, "You're down to one character — guess instead of passing.");
+  if (remainingCount === 0) throw new ApiError(400, "You've crossed off every candidate. Bring one back before you can pass.");
+
   room.log.push({ team: player.team, playerName: player.name, kind: "pass", result: "Passed" });
   room.turnTeam = otherTeam(player.team);
   room.askedThisTurn = false;

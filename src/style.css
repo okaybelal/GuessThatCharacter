@@ -31,6 +31,24 @@ body[data-turn="blue"] {
   background: radial-gradient(circle at 50% -10%, rgba(96, 165, 250, 0.22), transparent 60%), var(--bg);
 }
 
+body[data-turn="red"] .questions,
+body[data-turn="red"] .board,
+body[data-turn="red"] .cat-btn,
+body[data-turn="red"] .category-modal,
+body[data-turn="red"] .value-btn,
+body[data-turn="red"] .card:not(.eliminated):not(.self-crossed):not(.picked) {
+  border-color: rgba(248, 113, 113, 0.5);
+}
+
+body[data-turn="blue"] .questions,
+body[data-turn="blue"] .board,
+body[data-turn="blue"] .cat-btn,
+body[data-turn="blue"] .category-modal,
+body[data-turn="blue"] .value-btn,
+body[data-turn="blue"] .card:not(.eliminated):not(.self-crossed):not(.picked) {
+  border-color: rgba(96, 165, 250, 0.5);
+}
+
 .game {
   max-width: 960px;
   margin: 0 auto;
@@ -108,6 +126,14 @@ h2 {
 .cat-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+.board {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 2rem;
 }
 
 .board .grid {
@@ -293,6 +319,11 @@ button.card:not(:disabled):not(.eliminated):hover,
   color: var(--text-dim);
   font-size: 0.85rem;
   margin: 0 0 1.25rem;
+}
+
+.hint.warning {
+  color: #f87171;
+  font-weight: 600;
 }
 
 .teams-preview {
@@ -567,16 +598,6 @@ button.card:not(:disabled):not(.eliminated):hover,
   justify-content: center;
   padding: 1rem;
   z-index: 50;
-  animation: modal-fade-in 0.25s ease forwards;
-}
-
-@keyframes modal-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
 }
 
 .modal-card {
@@ -587,18 +608,6 @@ button.card:not(:disabled):not(.eliminated):hover,
   max-width: 420px;
   width: 100%;
   text-align: center;
-  animation: modal-pop-in 0.25s ease forwards;
-}
-
-@keyframes modal-pop-in {
-  from {
-    opacity: 0;
-    transform: scale(0.94) translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
 }
 
 .modal-card.team-red {

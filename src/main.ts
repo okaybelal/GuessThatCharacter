@@ -253,10 +253,14 @@ function render() {
   if (!room) {
     document.body.removeAttribute("data-turn");
     renderLobby();
-  } else if (room.status === "lobby" || room.status === "picking") {
+  } else if (room.status === "lobby") {
     document.body.removeAttribute("data-turn");
-    if (room.status === "lobby") renderWaitingRoom();
-    else renderPicking();
+    renderWaitingRoom();
+  } else if (room.status === "picking") {
+    const team = myTeam();
+    if (team) document.body.setAttribute("data-turn", team === "Blue" ? "blue" : "red");
+    else document.body.removeAttribute("data-turn");
+    renderPicking();
   } else if (room.status === "finished") {
     document.body.setAttribute("data-turn", room.winner === "Blue" ? "blue" : "red");
     renderGame();
@@ -418,7 +422,8 @@ function renderGame() {
   const activeCrossed = r.turnTeam === "Blue" ? r.blueCrossed : r.redCrossed;
   const remaining = characters.filter((c) => !activeEliminated.includes(c.id) && !activeCrossed.includes(c.id));
   const isLastCard = remaining.length === 1;
-  const canAct = isLastCard ? isMyTurn && !finished : isMyTurn && !finished && r.askedThisTurn;
+  const isOverCrossed = remaining.length === 0;
+  const canAct = isLastCard ? isMyTurn && !finished : isMyTurn && !finished && r.askedThisTurn && !isOverCrossed;
   const canInteractBoard = isMyTurn && !finished;
 
   app.innerHTML = `
@@ -488,9 +493,14 @@ function renderGame() {
             .join("")}
         </div>
         ${
+          isMyTurn && !finished && isOverCrossed
+            ? `<p class="hint warning">You've crossed off every candidate — bring one back before you can pass or guess.</p>`
+            : ""
+        }
+        ${
           !finished
             ? `<button id="turn-action-btn" class="guess-btn ${isLastCard ? "highlight" : ""}" ${canAct ? "" : "disabled"}>
-                ${isLastCard ? `Guess: ${remaining[0].name}` : "Pass"}
+                ${isLastCard ? `Guess: ${remaining[0].name}` : isOverCrossed ? "Bring back a card" : "Pass"}
               </button>`
             : ""
         }
