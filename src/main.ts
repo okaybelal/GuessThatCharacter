@@ -42,6 +42,7 @@ interface RoomState {
 }
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
+let selfCrossed = new Set<string>();
 
 let myPlayerId: string | null = null;
 let room: RoomState | null = null;
@@ -135,11 +136,18 @@ async function startGame() {
     const data = await api(`/rooms/${room.code}/start`, "POST", { playerId: myPlayerId });
     room = data.room;
     errorMsg = "";
+    selfCrossed.clear();
     render();
   } catch (e: any) {
     errorMsg = e.message;
     render();
   }
+}
+
+function toggleSelfCrossed(characterId: string) {
+  if (selfCrossed.has(characterId)) selfCrossed.delete(characterId);
+  else selfCrossed.add(characterId);
+  render();
 }
 
 async function pickCharacter(characterId: string) {
@@ -184,6 +192,7 @@ async function restartGame() {
     const data = await api(`/rooms/${room.code}/restart`, "POST", { playerId: myPlayerId });
     room = data.room;
     errorMsg = "";
+    selfCrossed.clear();
     render();
   } catch (e: any) {
     errorMsg = e.message;
@@ -367,6 +376,8 @@ function renderGame() {
   const isMyTurn = team === r.turnTeam;
   const finished = r.status === "finished";
   const activeEliminated = r.turnTeam === "Blue" ? r.blueEliminated : r.redEliminated;
+  const remaining = characters.filter((c) => !activeEliminated.includes(c.id) && !selfCrossed.has(c.id));
+  const canFinalGuess = isMyTurn && !finished && remaining.length === 1;
 
   app.innerHTML = `
     <div class="game">
@@ -406,20 +417,28 @@ function renderGame() {
 
       <section class="board">
         <h2>${finished ? "Characters" : `Team ${r.turnTeam}'s Board${isMyTurn ? " (Your Turn)" : ""}`}</h2>
+        ${!finished ? `<p class="hint">Click a character to cross it off your own list. Once you're down to one, lock in your guess below — get it wrong and you lose.</p>` : ""}
         <div class="grid">
           ${characters
             .map((c) => {
               const isOut = activeEliminated.includes(c.id);
-              const disabled = isOut || !isMyTurn || finished;
+              const crossed = selfCrossed.has(c.id);
               return `
-              <button class="card ${isOut ? "eliminated" : ""}" data-id="${c.id}" ${disabled ? "disabled" : ""}>
+              <div class="card ${isOut ? "eliminated" : ""} ${crossed ? "self-crossed" : ""}" data-id="${c.id}">
                 <span class="avatar">${avatarSVG(c)}</span>
                 <span class="name">${c.name}</span>
                 <span class="source">${c.source}</span>
-              </button>`;
+              </div>`;
             })
             .join("")}
         </div>
+        ${
+          !finished
+            ? `<button id="final-guess-btn" class="guess-btn ${canFinalGuess ? "highlight" : ""}" ${canFinalGuess ? "" : "disabled"}>
+                🎯 ${remaining.length === 1 ? `Guess: ${remaining[0].name}` : "Guess"}
+              </button>`
+            : ""
+        }
       </section>
 
       <button id="leave-btn" class="leave">Leave Room</button>
@@ -431,9 +450,12 @@ function renderGame() {
   document.querySelectorAll<HTMLButtonElement>(".q-btn").forEach((btn) => {
     btn.addEventListener("click", () => askQuestion(btn.dataset.key as AttrKey));
   });
-  document.querySelectorAll<HTMLButtonElement>(".card").forEach((btn) => {
-    btn.addEventListener("click", () => makeGuess(btn.dataset.id!));
+  document.querySelectorAll<HTMLDivElement>(".board .card:not(.eliminated)").forEach((card) => {
+    card.addEventListener("click", () => toggleSelfCrossed(card.dataset.id!));
   });
+  if (canFinalGuess) {
+    document.querySelector<HTMLButtonElement>("#final-guess-btn")!.addEventListener("click", () => makeGuess(remaining[0].id));
+  }
   document.querySelector<HTMLButtonElement>("#leave-btn")!.addEventListener("click", leaveRoom);
 
   if (finished) {

@@ -158,14 +158,8 @@ export function makeGuess(room: Room, playerId: string, characterId: string) {
 
   room.log.push({ team: player.team, playerName: player.name, kind: "guess", characterId, result: correct ? "Correct!" : "Wrong" });
 
-  if (correct) {
-    room.status = "finished";
-    room.winner = player.team;
-  } else {
-    const eliminated = player.team === "Red" ? room.redEliminated : room.blueEliminated;
-    if (!eliminated.includes(characterId)) eliminated.push(characterId);
-    room.turnTeam = opponent;
-  }
+  room.status = "finished";
+  room.winner = correct ? player.team : opponent;
 }
 
 export function restartGame(room: Room, playerId: string) {
