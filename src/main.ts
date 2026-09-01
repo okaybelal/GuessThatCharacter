@@ -31,6 +31,7 @@ interface RoomState {
   status: "lobby" | "picking" | "playing" | "finished";
   players: PublicPlayer[];
   turnTeam: Team;
+  askedThisTurn: boolean;
   log: LogEntry[];
   winner?: Team;
   redPicked: boolean;
@@ -406,9 +407,10 @@ function renderGame() {
 
       <section class="questions">
         <h2>Ask a Question ${team ? `(Team ${team})` : ""}</h2>
+        ${isMyTurn && !finished && r.askedThisTurn ? `<p class="hint">You've asked your question for this turn — pass or lock in a guess.</p>` : ""}
         <div class="question-grid">
           ${Object.entries(attributeLabels)
-            .map(([key, label]) => `<button class="q-btn" data-key="${key}" ${isMyTurn && !finished ? "" : "disabled"}>${label}</button>`)
+            .map(([key, label]) => `<button class="q-btn" data-key="${key}" ${isMyTurn && !finished && !r.askedThisTurn ? "" : "disabled"}>${label}</button>`)
             .join("")}
         </div>
         ${!finished ? `<button id="pass-btn" class="pass-btn" ${isMyTurn ? "" : "disabled"}>⏭️ Pass Turn</button>` : ""}

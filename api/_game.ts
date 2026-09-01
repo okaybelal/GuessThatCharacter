@@ -26,6 +26,7 @@ export interface Room {
   redEliminated: string[];
   blueEliminated: string[];
   turnTeam: Team;
+  askedThisTurn: boolean;
   log: LogEntry[];
   winner?: Team;
 }
@@ -80,6 +81,7 @@ export function createRoom(name: string): { room: Room; playerId: string } {
     redEliminated: [],
     blueEliminated: [],
     turnTeam: "Red",
+    askedThisTurn: false,
     log: [],
   };
   return { room, playerId };
@@ -118,6 +120,7 @@ export function pickCharacter(room: Room, playerId: string, characterId: string)
   if (room.redSecretId && room.blueSecretId) {
     room.status = "playing";
     room.turnTeam = "Red";
+    room.askedThisTurn = false;
     room.log = [];
     room.redEliminated = [];
     room.blueEliminated = [];
@@ -128,6 +131,7 @@ export function askQuestion(room: Room, playerId: string, key: string) {
   if (room.status !== "playing") throw new ApiError(400, "Game is not in progress.");
   const player = room.players.find((p) => p.id === playerId);
   if (!player || player.team !== room.turnTeam) throw new ApiError(403, "Not your turn.");
+  if (room.askedThisTurn) throw new ApiError(400, "You can only ask one question per turn. Pass or guess.");
 
   const opponent = otherTeam(player.team);
   const opponentSecretId = opponent === "Red" ? room.redSecretId : room.blueSecretId;
@@ -142,6 +146,7 @@ export function askQuestion(room: Room, playerId: string, key: string) {
   });
 
   room.log.push({ team: player.team, playerName: player.name, kind: "question", key, result: answer ? "Yes" : "No" });
+  room.askedThisTurn = true;
 }
 
 export function passTurn(room: Room, playerId: string) {
@@ -151,6 +156,7 @@ export function passTurn(room: Room, playerId: string) {
 
   room.log.push({ team: player.team, playerName: player.name, kind: "pass", result: "Passed" });
   room.turnTeam = otherTeam(player.team);
+  room.askedThisTurn = false;
 }
 
 export function makeGuess(room: Room, playerId: string, characterId: string) {
@@ -181,6 +187,7 @@ export function restartGame(room: Room, playerId: string) {
   room.log = [];
   room.winner = undefined;
   room.turnTeam = "Red";
+  room.askedThisTurn = false;
 }
 
 export function leaveRoom(room: Room, playerId: string) {
@@ -194,6 +201,7 @@ export function publicRoom(room: Room, viewerTeam?: Team) {
     status: room.status,
     players: room.players,
     turnTeam: room.turnTeam,
+    askedThisTurn: room.askedThisTurn,
     log: room.log,
     winner: room.winner,
     redPicked: !!room.redSecretId,
