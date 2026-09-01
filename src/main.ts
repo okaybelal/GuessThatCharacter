@@ -390,7 +390,8 @@ function renderGame() {
   const finished = r.status === "finished";
   const activeEliminated = r.turnTeam === "Blue" ? r.blueEliminated : r.redEliminated;
   const remaining = characters.filter((c) => !activeEliminated.includes(c.id) && !selfCrossed.has(c.id));
-  const canFinalGuess = isMyTurn && !finished && remaining.length === 1;
+  const isLastCard = remaining.length === 1;
+  const canAct = isLastCard ? isMyTurn && !finished : isMyTurn && !finished && r.askedThisTurn;
 
   app.innerHTML = `
     <div class="game">
@@ -413,7 +414,6 @@ function renderGame() {
             .map(([key, label]) => `<button class="q-btn" data-key="${key}" ${isMyTurn && !finished && !r.askedThisTurn ? "" : "disabled"}>${label}</button>`)
             .join("")}
         </div>
-        ${!finished ? `<button id="pass-btn" class="pass-btn" ${isMyTurn ? "" : "disabled"}>⏭️ Pass Turn</button>` : ""}
         <div class="log">
           ${r.log
             .slice()
@@ -452,8 +452,8 @@ function renderGame() {
         </div>
         ${
           !finished
-            ? `<button id="final-guess-btn" class="guess-btn ${canFinalGuess ? "highlight" : ""}" ${canFinalGuess ? "" : "disabled"}>
-                🎯 ${remaining.length === 1 ? `Guess: ${remaining[0].name}` : "Guess"}
+            ? `<button id="turn-action-btn" class="guess-btn ${isLastCard ? "highlight" : ""}" ${canAct ? "" : "disabled"}>
+                ${isLastCard ? `Guess: ${remaining[0].name}` : "Pass"}
               </button>`
             : ""
         }
@@ -468,12 +468,14 @@ function renderGame() {
   document.querySelectorAll<HTMLButtonElement>(".q-btn").forEach((btn) => {
     btn.addEventListener("click", () => askQuestion(btn.dataset.key as AttrKey));
   });
-  document.querySelector<HTMLButtonElement>("#pass-btn")?.addEventListener("click", passTurn);
   document.querySelectorAll<HTMLDivElement>(".board .card:not(.eliminated)").forEach((card) => {
     card.addEventListener("click", () => toggleSelfCrossed(card.dataset.id!));
   });
-  if (canFinalGuess) {
-    document.querySelector<HTMLButtonElement>("#final-guess-btn")!.addEventListener("click", () => makeGuess(remaining[0].id));
+  if (canAct) {
+    document.querySelector<HTMLButtonElement>("#turn-action-btn")!.addEventListener("click", () => {
+      if (isLastCard) makeGuess(remaining[0].id);
+      else passTurn();
+    });
   }
   document.querySelector<HTMLButtonElement>("#leave-btn")!.addEventListener("click", leaveRoom);
 

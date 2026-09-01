@@ -97,26 +97,6 @@ h2 {
   transform: translateY(-1px);
 }
 
-.pass-btn {
-  display: block;
-  width: 100%;
-  margin-top: 0.75rem;
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  padding: 0.6rem 0.8rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 600;
-  transition: border-color 0.15s, color 0.15s;
-}
-
-.pass-btn:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--text);
-}
-
 .pass-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
