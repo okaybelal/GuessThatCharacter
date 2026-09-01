@@ -44,7 +44,7 @@ export default async function handler(req: any, res: any) {
           pickCharacter(r, playerId, token, body.characterId);
           break;
         case "question":
-          askQuestion(r, playerId, token, body.key);
+          askQuestion(r, playerId, token, body.categoryKey, body.value);
           break;
         case "pass":
           passTurn(r, playerId, token);

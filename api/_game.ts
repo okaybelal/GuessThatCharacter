@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { characters, attributeLabels } from "../src/characters.js";
+import { characters, categories, categoryValueMatches } from "../src/characters.js";
 
 export type Team = "Red" | "Blue";
 
@@ -14,7 +14,8 @@ export interface LogEntry {
   team: Team;
   playerName: string;
   kind: "question" | "guess" | "pass";
-  key?: string;
+  categoryKey?: string;
+  value?: string;
   characterId?: string;
   result: string;
 }
@@ -63,8 +64,7 @@ function otherTeam(team: Team): Team {
 
 function charInfo(id?: string) {
   if (!id) return undefined;
-  const c = characters.find((ch) => ch.id === id);
-  return c ? { id: c.id, name: c.name, source: c.source } : undefined;
+  return characters.find((ch) => ch.id === id);
 }
 
 export function genCode() {
@@ -145,25 +145,28 @@ export function pickCharacter(room: Room, playerId: string, token: string, chara
   }
 }
 
-export function askQuestion(room: Room, playerId: string, token: string, key: string) {
+export function askQuestion(room: Room, playerId: string, token: string, categoryKey: string, value: string) {
   if (room.status !== "playing") throw new ApiError(400, "Game is not in progress.");
   const player = requirePlayer(room, playerId, token);
   if (player.team !== room.turnTeam) throw new ApiError(403, "Not your turn.");
   if (room.askedThisTurn) throw new ApiError(400, "You can only ask one question per turn. Pass or guess.");
-  if (!Object.hasOwn(attributeLabels, key)) throw new ApiError(400, "Invalid question.");
+
+  const category = categories.find((c) => c.key === categoryKey);
+  if (!category) throw new ApiError(400, "Invalid question category.");
+  if (!category.values.some((v) => v.value === value)) throw new ApiError(400, "Invalid question value.");
 
   const opponent = otherTeam(player.team);
   const opponentSecretId = opponent === "Red" ? room.redSecretId : room.blueSecretId;
   const secret = characters.find((c) => c.id === opponentSecretId)!;
-  const answer = (secret.attributes as any)[key];
+  const answer = categoryValueMatches(secret, categoryKey, value);
 
   const eliminated = player.team === "Red" ? room.redEliminated : room.blueEliminated;
   characters.forEach((c) => {
     if (eliminated.includes(c.id)) return;
-    if ((c.attributes as any)[key] !== answer) eliminated.push(c.id);
+    if (categoryValueMatches(c, categoryKey, value) !== answer) eliminated.push(c.id);
   });
 
-  room.log.push({ team: player.team, playerName: player.name, kind: "question", key, result: answer ? "Yes" : "No" });
+  room.log.push({ team: player.team, playerName: player.name, kind: "question", categoryKey, value, result: answer ? "Yes" : "No" });
   room.askedThisTurn = true;
 }
 
@@ -181,6 +184,7 @@ export function passTurn(room: Room, playerId: string, token: string) {
 export function toggleCross(room: Room, playerId: string, token: string, characterId: string) {
   if (room.status !== "playing") throw new ApiError(400, "Game is not in progress.");
   const player = requirePlayer(room, playerId, token);
+  if (player.team !== room.turnTeam) throw new ApiError(403, "Not your turn.");
   if (!characters.some((c) => c.id === characterId)) throw new ApiError(400, "Unknown character.");
 
   const crossed = player.team === "Red" ? room.redCrossed : room.blueCrossed;

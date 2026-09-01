@@ -1,8 +1,7 @@
 import "./style.css";
-import { characters, attributeLabels, type Character } from "./characters";
+import { characters, categories, buildQuestionText, type Character } from "./characters";
 import { avatarSVG } from "./avatar";
 
-type AttrKey = keyof Character["attributes"];
 type Team = "Red" | "Blue";
 
 interface PublicPlayer {
@@ -15,15 +14,10 @@ interface LogEntry {
   team: Team;
   playerName: string;
   kind: "question" | "guess" | "pass";
-  key?: string;
+  categoryKey?: string;
+  value?: string;
   characterId?: string;
   result: string;
-}
-
-interface CharInfo {
-  id: string;
-  name: string;
-  source: string;
 }
 
 interface RoomState {
@@ -40,8 +34,8 @@ interface RoomState {
   blueEliminated: string[];
   redCrossed: string[];
   blueCrossed: string[];
-  mySecret: CharInfo | null;
-  reveal?: { red?: CharInfo; blue?: CharInfo };
+  mySecret: Character | null;
+  reveal?: { red?: Character; blue?: Character };
 }
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -52,6 +46,7 @@ let room: RoomState | null = null;
 let errorMsg = "";
 let playerName = localStorage.getItem("gtc-name") || "";
 let pollTimer: ReturnType<typeof setInterval> | null = null;
+let openCategoryKey: string | null = null;
 
 function escapeHtml(str: string): string {
   return str.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -169,14 +164,16 @@ async function pickCharacter(characterId: string) {
   }
 }
 
-async function askQuestion(key: AttrKey) {
+async function askQuestion(categoryKey: string, value: string) {
   if (!room || !myPlayerId) return;
   try {
-    const data = await roomAction(room.code, { action: "question", playerId: myPlayerId, token: myToken, key });
+    const data = await roomAction(room.code, { action: "question", playerId: myPlayerId, token: myToken, categoryKey, value });
     room = data.room;
+    openCategoryKey = null;
     render();
   } catch (e: any) {
     errorMsg = e.message;
+    openCategoryKey = null;
     render();
   }
 }
@@ -223,6 +220,7 @@ async function restartGame() {
     const data = await roomAction(room.code, { action: "restart", playerId: myPlayerId, token: myToken });
     room = data.room;
     errorMsg = "";
+    openCategoryKey = null;
     render();
   } catch (e: any) {
     errorMsg = e.message;
@@ -242,6 +240,7 @@ async function leaveRoom() {
   room = null;
   myPlayerId = null;
   myToken = null;
+  openCategoryKey = null;
   render();
 }
 
@@ -401,16 +400,26 @@ function renderPicking() {
   document.querySelector<HTMLButtonElement>("#leave-btn")!.addEventListener("click", leaveRoom);
 }
 
+function answerBadge(categoryKey: string | undefined, result: string): string {
+  const cat = categories.find((c) => c.key === categoryKey);
+  const icon = cat?.icon ?? "❓";
+  const isYes = result === "Yes";
+  return `<span class="answer-badge ${isYes ? "answer-yes" : "answer-no"}">${icon} ${isYes ? "✅" : "❌"}</span>`;
+}
+
 function renderGame() {
   const r = room!;
   const team = myTeam();
   const isMyTurn = team === r.turnTeam;
   const finished = r.status === "finished";
+  if (!isMyTurn || finished) openCategoryKey = null;
+
   const activeEliminated = r.turnTeam === "Blue" ? r.blueEliminated : r.redEliminated;
   const activeCrossed = r.turnTeam === "Blue" ? r.blueCrossed : r.redCrossed;
   const remaining = characters.filter((c) => !activeEliminated.includes(c.id) && !activeCrossed.includes(c.id));
   const isLastCard = remaining.length === 1;
   const canAct = isLastCard ? isMyTurn && !finished : isMyTurn && !finished && r.askedThisTurn;
+  const canInteractBoard = isMyTurn && !finished;
 
   app.innerHTML = `
     <div class="game">
@@ -428,9 +437,15 @@ function renderGame() {
       <section class="questions">
         <h2>Ask a Question ${team ? `(Team ${team})` : ""}</h2>
         ${isMyTurn && !finished && r.askedThisTurn ? `<p class="hint">You've asked your question for this turn — pass or lock in a guess.</p>` : ""}
-        <div class="question-grid">
-          ${Object.entries(attributeLabels)
-            .map(([key, label]) => `<button class="q-btn" data-key="${key}" ${isMyTurn && !finished && !r.askedThisTurn ? "" : "disabled"}>${label}</button>`)
+        <div class="category-grid">
+          ${categories
+            .map(
+              (cat) => `
+            <button class="cat-btn" data-key="${cat.key}" ${isMyTurn && !finished && !r.askedThisTurn ? "" : "disabled"}>
+              <span class="cat-icon">${cat.icon}</span>
+              <span class="cat-label">${cat.label}</span>
+            </button>`
+            )
             .join("")}
         </div>
         <div class="log">
@@ -441,7 +456,8 @@ function renderGame() {
             .map((entry) => {
               const name = escapeHtml(entry.playerName);
               if (entry.kind === "question") {
-                return `<div class="log-entry">Team ${entry.team} · ${name}: "${attributeLabels[entry.key as AttrKey]}" → <strong>${entry.result}</strong></div>`;
+                const qText = buildQuestionText(entry.categoryKey!, entry.value!);
+                return `<div class="log-entry">Team ${entry.team} · ${name}: "${qText}" ${answerBadge(entry.categoryKey, entry.result)}</div>`;
               }
               if (entry.kind === "pass") {
                 return `<div class="log-entry">Team ${entry.team} · ${name} passed the turn</div>`;
@@ -455,17 +471,18 @@ function renderGame() {
 
       <section class="board">
         <h2>${finished ? "Characters" : `Team ${r.turnTeam}'s Board${isMyTurn ? " (Your Turn)" : ""}`}</h2>
-        ${!finished ? `<p class="hint">Click a character to cross it off your team's shared list. Once you're down to one, lock in your guess below — get it wrong and you lose.</p>` : ""}
+        ${!finished ? `<p class="hint">Click a character to cross it off. Crossing off a card the game hasn't ruled out yet is flagged in red — your risk. Once you're down to one, lock in your guess below.</p>` : ""}
         <div class="grid">
           ${characters
             .map((c) => {
               const isOut = activeEliminated.includes(c.id);
               const crossed = activeCrossed.includes(c.id);
               return `
-              <div class="card ${isOut ? "eliminated" : ""} ${crossed ? "self-crossed" : ""}" data-id="${c.id}">
+              <div class="card ${isOut ? "eliminated" : ""} ${crossed ? "self-crossed" : ""} ${canInteractBoard && !isOut ? "interactive" : ""}" data-id="${c.id}">
                 <span class="avatar">${avatarSVG(c)}</span>
                 <span class="name">${c.name}</span>
                 <span class="source">${c.source}</span>
+                ${crossed ? `<span class="risk-badge">✕</span>` : ""}
               </div>`;
             })
             .join("")}
@@ -483,14 +500,20 @@ function renderGame() {
     </div>
 
     ${finished ? renderWinnerModal(r, team) : ""}
+    ${!finished && openCategoryKey ? renderCategoryModal(openCategoryKey) : ""}
   `;
 
-  document.querySelectorAll<HTMLButtonElement>(".q-btn").forEach((btn) => {
-    btn.addEventListener("click", () => askQuestion(btn.dataset.key as AttrKey));
+  document.querySelectorAll<HTMLButtonElement>(".cat-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      openCategoryKey = btn.dataset.key!;
+      render();
+    });
   });
-  document.querySelectorAll<HTMLDivElement>(".board .card:not(.eliminated)").forEach((card) => {
-    card.addEventListener("click", () => toggleCross(card.dataset.id!));
-  });
+  if (canInteractBoard) {
+    document.querySelectorAll<HTMLDivElement>(".board .card.interactive").forEach((card) => {
+      card.addEventListener("click", () => toggleCross(card.dataset.id!));
+    });
+  }
   if (canAct) {
     document.querySelector<HTMLButtonElement>("#turn-action-btn")!.addEventListener("click", () => {
       if (isLastCard) makeGuess(remaining[0].id);
@@ -503,6 +526,46 @@ function renderGame() {
     document.querySelector<HTMLButtonElement>("#play-again-btn")?.addEventListener("click", restartGame);
     document.querySelector<HTMLButtonElement>("#modal-leave-btn")?.addEventListener("click", leaveRoom);
   }
+
+  if (!finished && openCategoryKey) {
+    document.querySelector<HTMLButtonElement>("#category-modal-close")!.addEventListener("click", () => {
+      openCategoryKey = null;
+      render();
+    });
+    document.querySelector<HTMLDivElement>("#category-modal-backdrop")!.addEventListener("click", (e) => {
+      if (e.target === e.currentTarget) {
+        openCategoryKey = null;
+        render();
+      }
+    });
+    document.querySelectorAll<HTMLButtonElement>(".value-btn").forEach((btn) => {
+      btn.addEventListener("click", () => askQuestion(openCategoryKey!, btn.dataset.value!));
+    });
+  }
+}
+
+function renderCategoryModal(categoryKey: string) {
+  const cat = categories.find((c) => c.key === categoryKey);
+  if (!cat) return "";
+  return `
+    <div class="modal-backdrop" id="category-modal-backdrop">
+      <div class="modal-card category-modal">
+        <button class="modal-close" id="category-modal-close">✕</button>
+        <h2>${cat.icon} ${cat.label}</h2>
+        <div class="value-grid">
+          ${cat.values
+            .map(
+              (v) => `
+            <button class="value-btn" data-value="${v.value}">
+              <span class="value-icon">${v.icon}</span>
+              <span class="value-label">${v.label}</span>
+            </button>`
+            )
+            .join("")}
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function renderWinnerModal(r: RoomState, team: Team | null) {
@@ -514,16 +577,18 @@ function renderWinnerModal(r: RoomState, team: Team | null) {
     <div class="modal-backdrop">
       <div class="modal-card ${r.winner === "Blue" ? "team-blue" : "team-red"}">
         <div class="modal-emoji">${won ? "🎉" : "😢"}</div>
-        <h2>${won ? "Congratulations!" : `Team ${r.winner} Wins!`}</h2>
+        <div class="winner-banner ${r.winner === "Blue" ? "banner-blue" : "banner-red"}">TEAM ${r.winner?.toUpperCase()} WINS!</div>
         <p class="modal-sub">${won ? "Your team guessed it right!" : "Better luck next time."}</p>
-        <div class="reveal-row">
-          <div class="reveal-item">
-            <span class="reveal-label">🔴 Red's character</span>
-            <strong>${redChar?.name ?? "—"}</strong>
+        <div class="reveal-portraits">
+          <div class="reveal-portrait-item frame-red">
+            <span class="avatar large">${redChar ? avatarSVG(redChar) : ""}</span>
+            <span class="reveal-name">${redChar?.name ?? "—"}</span>
+            <span class="reveal-caption">🔴 Red picked</span>
           </div>
-          <div class="reveal-item">
-            <span class="reveal-label">🔵 Blue's character</span>
-            <strong>${blueChar?.name ?? "—"}</strong>
+          <div class="reveal-portrait-item frame-blue">
+            <span class="avatar large">${blueChar ? avatarSVG(blueChar) : ""}</span>
+            <span class="reveal-name">${blueChar?.name ?? "—"}</span>
+            <span class="reveal-caption">🔵 Blue picked</span>
           </div>
         </div>
         <div class="modal-actions">

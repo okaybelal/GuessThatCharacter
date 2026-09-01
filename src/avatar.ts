@@ -12,11 +12,10 @@ function shade(hex: string, amt: number): string {
 }
 
 function traitBadge(c: Character): { icon: string; bg: string } | null {
-  const a = c.attributes;
-  if (a.isVillain) return { icon: "💀", bg: "#3a1010" };
-  if (a.hasSuperpowers) return { icon: "✨", bg: "#3a2e10" };
-  if (a.wieldsWeapon) return { icon: "⚔️", bg: "#2a2a2a" };
-  if (a.wearsCostume) return { icon: "🎽", bg: "#102a3a" };
+  if (c.alignment === "villain") return { icon: "💀", bg: "#3a1010" };
+  if (c.powers === "superpowers" || c.powers === "magic") return { icon: "✨", bg: "#3a2e10" };
+  if (c.weapon !== "none") return { icon: "⚔️", bg: "#2a2a2a" };
+  if (c.costume) return { icon: "🎽", bg: "#102a3a" };
   return null;
 }
 

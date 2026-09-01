@@ -1,65 +1,184 @@
+export type Species = "human" | "creature" | "robot" | "magical";
+export type Gender = "male" | "female";
+export type Alignment = "hero" | "villain";
+export type PowerType = "none" | "superpowers" | "magic" | "tech";
+export type WeaponType = "none" | "melee" | "ranged" | "magic";
+export type Format = "live-movie" | "live-tv" | "animated-movie" | "animated-tv";
+export type AgeGroup = "teen" | "adult" | "elder";
+
 export interface Character {
   id: string;
   name: string;
   source: string;
   emoji: string;
   color: string;
-  attributes: {
-    isHuman: boolean;
-    isMale: boolean;
-    hasSuperpowers: boolean;
-    isVillain: boolean;
-    wearsCostume: boolean;
-    isAnimated: boolean;
-    fromMovie: boolean; // false = TV series
-    hasFacialHair: boolean;
-    isTeenOrYounger: boolean;
-    wieldsWeapon: boolean;
-  };
+  species: Species;
+  gender: Gender;
+  alignment: Alignment;
+  powers: PowerType;
+  weapon: WeaponType;
+  format: Format;
+  age: AgeGroup;
+  costume: boolean;
+  facialHair: boolean;
 }
 
 export const characters: Character[] = [
-  { id: "walter-white", name: "Walter White", source: "Breaking Bad", emoji: "🥼", color: "#2f7d4f", attributes: { isHuman: true, isMale: true, hasSuperpowers: false, isVillain: true, wearsCostume: false, isAnimated: false, fromMovie: false, hasFacialHair: true, isTeenOrYounger: false, wieldsWeapon: true } },
-  { id: "darth-vader", name: "Darth Vader", source: "Star Wars", emoji: "🖤", color: "#1a1a1a", attributes: { isHuman: true, isMale: true, hasSuperpowers: true, isVillain: true, wearsCostume: true, isAnimated: false, fromMovie: true, hasFacialHair: false, isTeenOrYounger: false, wieldsWeapon: true } },
-  { id: "draco-malfoy", name: "Draco Malfoy", source: "Harry Potter", emoji: "🐍", color: "#2e6b4f", attributes: { isHuman: true, isMale: true, hasSuperpowers: true, isVillain: true, wearsCostume: true, isAnimated: false, fromMovie: true, hasFacialHair: false, isTeenOrYounger: true, wieldsWeapon: true } },
-  { id: "spongebob", name: "SpongeBob SquarePants", source: "SpongeBob SquarePants", emoji: "🧽", color: "#f4c542", attributes: { isHuman: false, isMale: true, hasSuperpowers: false, isVillain: false, wearsCostume: false, isAnimated: true, fromMovie: false, hasFacialHair: false, isTeenOrYounger: false, wieldsWeapon: false } },
-  { id: "iron-man", name: "Tony Stark", source: "Marvel", emoji: "🦾", color: "#c0392b", attributes: { isHuman: true, isMale: true, hasSuperpowers: true, isVillain: false, wearsCostume: true, isAnimated: false, fromMovie: true, hasFacialHair: true, isTeenOrYounger: false, wieldsWeapon: true } },
-  { id: "michael-scott", name: "Michael Scott", source: "The Office", emoji: "📎", color: "#3b6ea5", attributes: { isHuman: true, isMale: true, hasSuperpowers: false, isVillain: false, wearsCostume: false, isAnimated: false, fromMovie: false, hasFacialHair: false, isTeenOrYounger: false, wieldsWeapon: false } },
-  { id: "eleven", name: "Eleven", source: "Stranger Things", emoji: "🔮", color: "#6c3fa3", attributes: { isHuman: true, isMale: false, hasSuperpowers: true, isVillain: false, wearsCostume: false, isAnimated: false, fromMovie: false, hasFacialHair: false, isTeenOrYounger: true, wieldsWeapon: false } },
-  { id: "shrek", name: "Shrek", source: "Shrek", emoji: "🟢", color: "#5b8c3e", attributes: { isHuman: false, isMale: true, hasSuperpowers: false, isVillain: false, wearsCostume: false, isAnimated: true, fromMovie: true, hasFacialHair: false, isTeenOrYounger: false, wieldsWeapon: false } },
-  { id: "daemon-targaryen", name: "Daemon Targaryen", source: "House of the Dragon", emoji: "🐉", color: "#7a1f1f", attributes: { isHuman: true, isMale: true, hasSuperpowers: false, isVillain: false, wearsCostume: false, isAnimated: false, fromMovie: false, hasFacialHair: false, isTeenOrYounger: false, wieldsWeapon: true } },
-  { id: "joker", name: "The Joker", source: "Batman", emoji: "🃏", color: "#5b2a86", attributes: { isHuman: true, isMale: true, hasSuperpowers: false, isVillain: true, wearsCostume: true, isAnimated: false, fromMovie: true, hasFacialHair: false, isTeenOrYounger: false, wieldsWeapon: true } },
-  { id: "elsa", name: "Elsa", source: "Frozen", emoji: "❄️", color: "#4fa3d1", attributes: { isHuman: true, isMale: false, hasSuperpowers: true, isVillain: false, wearsCostume: true, isAnimated: true, fromMovie: true, hasFacialHair: false, isTeenOrYounger: false, wieldsWeapon: false } },
-  { id: "homer", name: "Homer Simpson", source: "The Simpsons", emoji: "🍩", color: "#f2c14e", attributes: { isHuman: true, isMale: true, hasSuperpowers: false, isVillain: false, wearsCostume: false, isAnimated: true, fromMovie: false, hasFacialHair: false, isTeenOrYounger: false, wieldsWeapon: false } },
-  { id: "yoda", name: "Yoda", source: "Star Wars", emoji: "🟢", color: "#7a9b57", attributes: { isHuman: false, isMale: true, hasSuperpowers: true, isVillain: false, wearsCostume: true, isAnimated: false, fromMovie: true, hasFacialHair: false, isTeenOrYounger: false, wieldsWeapon: true } },
-  { id: "harley-quinn", name: "Harley Quinn", source: "Batman", emoji: "🔨", color: "#d63384", attributes: { isHuman: true, isMale: false, hasSuperpowers: false, isVillain: true, wearsCostume: true, isAnimated: false, fromMovie: true, hasFacialHair: false, isTeenOrYounger: false, wieldsWeapon: true } },
-  { id: "gandalf", name: "Gandalf", source: "Lord of the Rings", emoji: "🧙", color: "#7c7c7c", attributes: { isHuman: false, isMale: true, hasSuperpowers: true, isVillain: false, wearsCostume: true, isAnimated: false, fromMovie: true, hasFacialHair: true, isTeenOrYounger: false, wieldsWeapon: true } },
-  { id: "rick-sanchez", name: "Rick Sanchez", source: "Rick and Morty", emoji: "🧪", color: "#6fae6f", attributes: { isHuman: true, isMale: true, hasSuperpowers: false, isVillain: false, wearsCostume: false, isAnimated: true, fromMovie: false, hasFacialHair: false, isTeenOrYounger: false, wieldsWeapon: true } },
-  { id: "wednesday", name: "Wednesday Addams", source: "Wednesday", emoji: "🖤", color: "#2b2b2b", attributes: { isHuman: true, isMale: false, hasSuperpowers: true, isVillain: false, wearsCostume: false, isAnimated: false, fromMovie: false, hasFacialHair: false, isTeenOrYounger: true, wieldsWeapon: false } },
-  { id: "thanos", name: "Thanos", source: "Marvel", emoji: "💜", color: "#7d5ba6", attributes: { isHuman: false, isMale: true, hasSuperpowers: true, isVillain: true, wearsCostume: true, isAnimated: false, fromMovie: true, hasFacialHair: false, isTeenOrYounger: false, wieldsWeapon: true } },
-  { id: "moana", name: "Moana", source: "Moana", emoji: "🌊", color: "#2e8bc0", attributes: { isHuman: true, isMale: false, hasSuperpowers: false, isVillain: false, wearsCostume: false, isAnimated: true, fromMovie: true, hasFacialHair: false, isTeenOrYounger: true, wieldsWeapon: false } },
-  { id: "sheldon", name: "Sheldon Cooper", source: "The Big Bang Theory", emoji: "🧠", color: "#4a6fa5", attributes: { isHuman: true, isMale: true, hasSuperpowers: false, isVillain: false, wearsCostume: false, isAnimated: false, fromMovie: false, hasFacialHair: false, isTeenOrYounger: false, wieldsWeapon: false } },
-  { id: "maleficent", name: "Maleficent", source: "Sleeping Beauty", emoji: "🐐", color: "#3d1f4d", attributes: { isHuman: true, isMale: false, hasSuperpowers: true, isVillain: true, wearsCostume: true, isAnimated: true, fromMovie: true, hasFacialHair: false, isTeenOrYounger: false, wieldsWeapon: true } },
-  { id: "jon-snow", name: "Jon Snow", source: "Game of Thrones", emoji: "⚔️", color: "#4a4a4a", attributes: { isHuman: true, isMale: true, hasSuperpowers: false, isVillain: false, wearsCostume: false, isAnimated: false, fromMovie: false, hasFacialHair: true, isTeenOrYounger: false, wieldsWeapon: true } },
-  { id: "buzz-lightyear", name: "Buzz Lightyear", source: "Toy Story", emoji: "🚀", color: "#3a6ea5", attributes: { isHuman: false, isMale: true, hasSuperpowers: false, isVillain: false, wearsCostume: true, isAnimated: true, fromMovie: true, hasFacialHair: false, isTeenOrYounger: false, wieldsWeapon: false } },
-  { id: "katniss", name: "Katniss Everdeen", source: "The Hunger Games", emoji: "🏹", color: "#5a5a3c", attributes: { isHuman: true, isMale: false, hasSuperpowers: false, isVillain: false, wearsCostume: false, isAnimated: false, fromMovie: true, hasFacialHair: false, isTeenOrYounger: true, wieldsWeapon: true } },
-  { id: "deadpool", name: "Deadpool", source: "Marvel", emoji: "🗡️", color: "#a11d2e", attributes: { isHuman: true, isMale: true, hasSuperpowers: true, isVillain: false, wearsCostume: true, isAnimated: false, fromMovie: true, hasFacialHair: false, isTeenOrYounger: false, wieldsWeapon: true } },
-  { id: "leia", name: "Princess Leia", source: "Star Wars", emoji: "👑", color: "#8a5a9a", attributes: { isHuman: true, isMale: false, hasSuperpowers: false, isVillain: false, wearsCostume: false, isAnimated: false, fromMovie: true, hasFacialHair: false, isTeenOrYounger: false, wieldsWeapon: true } },
-  { id: "naruto", name: "Naruto Uzumaki", source: "Naruto", emoji: "🍥", color: "#e8912d", attributes: { isHuman: true, isMale: true, hasSuperpowers: true, isVillain: false, wearsCostume: true, isAnimated: true, fromMovie: false, hasFacialHair: false, isTeenOrYounger: true, wieldsWeapon: true } },
-  { id: "peter-griffin", name: "Peter Griffin", source: "Family Guy", emoji: "🍺", color: "#e0b13f", attributes: { isHuman: true, isMale: true, hasSuperpowers: false, isVillain: false, wearsCostume: false, isAnimated: true, fromMovie: false, hasFacialHair: false, isTeenOrYounger: false, wieldsWeapon: false } },
-  { id: "legolas", name: "Legolas", source: "Lord of the Rings", emoji: "🏹", color: "#3f6b4f", attributes: { isHuman: false, isMale: true, hasSuperpowers: false, isVillain: false, wearsCostume: true, isAnimated: false, fromMovie: true, hasFacialHair: false, isTeenOrYounger: false, wieldsWeapon: true } },
-  { id: "spider-man", name: "Spider-Man", source: "Marvel", emoji: "🕷️", color: "#a11d2e", attributes: { isHuman: true, isMale: true, hasSuperpowers: true, isVillain: false, wearsCostume: true, isAnimated: false, fromMovie: true, hasFacialHair: false, isTeenOrYounger: true, wieldsWeapon: false } },
+  { id: "walter-white", name: "Walter White", source: "Breaking Bad", emoji: "🥼", color: "#2f7d4f", species: "human", gender: "male", alignment: "villain", powers: "none", weapon: "ranged", format: "live-tv", age: "adult", costume: false, facialHair: true },
+  { id: "darth-vader", name: "Darth Vader", source: "Star Wars", emoji: "🖤", color: "#1a1a1a", species: "human", gender: "male", alignment: "villain", powers: "magic", weapon: "melee", format: "live-movie", age: "adult", costume: true, facialHair: false },
+  { id: "draco-malfoy", name: "Draco Malfoy", source: "Harry Potter", emoji: "🐍", color: "#2e6b4f", species: "human", gender: "male", alignment: "villain", powers: "magic", weapon: "magic", format: "live-movie", age: "teen", costume: true, facialHair: false },
+  { id: "spongebob", name: "SpongeBob SquarePants", source: "SpongeBob SquarePants", emoji: "🧽", color: "#f4c542", species: "creature", gender: "male", alignment: "hero", powers: "none", weapon: "none", format: "animated-tv", age: "adult", costume: false, facialHair: false },
+  { id: "iron-man", name: "Tony Stark", source: "Marvel", emoji: "🦾", color: "#c0392b", species: "human", gender: "male", alignment: "hero", powers: "tech", weapon: "ranged", format: "live-movie", age: "adult", costume: true, facialHair: true },
+  { id: "michael-scott", name: "Michael Scott", source: "The Office", emoji: "📎", color: "#3b6ea5", species: "human", gender: "male", alignment: "hero", powers: "none", weapon: "none", format: "live-tv", age: "adult", costume: false, facialHair: false },
+  { id: "eleven", name: "Eleven", source: "Stranger Things", emoji: "🔮", color: "#6c3fa3", species: "human", gender: "female", alignment: "hero", powers: "superpowers", weapon: "none", format: "live-tv", age: "teen", costume: false, facialHair: false },
+  { id: "shrek", name: "Shrek", source: "Shrek", emoji: "🟢", color: "#5b8c3e", species: "creature", gender: "male", alignment: "hero", powers: "none", weapon: "none", format: "animated-movie", age: "adult", costume: false, facialHair: false },
+  { id: "daemon-targaryen", name: "Daemon Targaryen", source: "House of the Dragon", emoji: "🐉", color: "#7a1f1f", species: "human", gender: "male", alignment: "hero", powers: "none", weapon: "melee", format: "live-tv", age: "adult", costume: false, facialHair: false },
+  { id: "joker", name: "The Joker", source: "Batman", emoji: "🃏", color: "#5b2a86", species: "human", gender: "male", alignment: "villain", powers: "none", weapon: "melee", format: "live-movie", age: "adult", costume: true, facialHair: false },
+  { id: "elsa", name: "Elsa", source: "Frozen", emoji: "❄️", color: "#4fa3d1", species: "human", gender: "female", alignment: "hero", powers: "magic", weapon: "none", format: "animated-movie", age: "adult", costume: true, facialHair: false },
+  { id: "homer", name: "Homer Simpson", source: "The Simpsons", emoji: "🍩", color: "#f2c14e", species: "human", gender: "male", alignment: "hero", powers: "none", weapon: "none", format: "animated-tv", age: "adult", costume: false, facialHair: false },
+  { id: "yoda", name: "Yoda", source: "Star Wars", emoji: "🟢", color: "#7a9b57", species: "magical", gender: "male", alignment: "hero", powers: "magic", weapon: "melee", format: "live-movie", age: "elder", costume: true, facialHair: false },
+  { id: "harley-quinn", name: "Harley Quinn", source: "Batman", emoji: "🔨", color: "#d63384", species: "human", gender: "female", alignment: "villain", powers: "none", weapon: "melee", format: "live-movie", age: "adult", costume: true, facialHair: false },
+  { id: "gandalf", name: "Gandalf", source: "Lord of the Rings", emoji: "🧙", color: "#7c7c7c", species: "magical", gender: "male", alignment: "hero", powers: "magic", weapon: "melee", format: "live-movie", age: "elder", costume: true, facialHair: true },
+  { id: "rick-sanchez", name: "Rick Sanchez", source: "Rick and Morty", emoji: "🧪", color: "#6fae6f", species: "human", gender: "male", alignment: "hero", powers: "tech", weapon: "ranged", format: "animated-tv", age: "adult", costume: false, facialHair: false },
+  { id: "wednesday", name: "Wednesday Addams", source: "Wednesday", emoji: "🖤", color: "#2b2b2b", species: "human", gender: "female", alignment: "hero", powers: "superpowers", weapon: "none", format: "live-tv", age: "teen", costume: false, facialHair: false },
+  { id: "thanos", name: "Thanos", source: "Marvel", emoji: "💜", color: "#7d5ba6", species: "magical", gender: "male", alignment: "villain", powers: "superpowers", weapon: "melee", format: "live-movie", age: "adult", costume: true, facialHair: false },
+  { id: "moana", name: "Moana", source: "Moana", emoji: "🌊", color: "#2e8bc0", species: "human", gender: "female", alignment: "hero", powers: "none", weapon: "none", format: "animated-movie", age: "teen", costume: false, facialHair: false },
+  { id: "sheldon", name: "Sheldon Cooper", source: "The Big Bang Theory", emoji: "🧠", color: "#4a6fa5", species: "human", gender: "male", alignment: "hero", powers: "none", weapon: "none", format: "live-tv", age: "adult", costume: false, facialHair: false },
+  { id: "maleficent", name: "Maleficent", source: "Sleeping Beauty", emoji: "🐐", color: "#3d1f4d", species: "magical", gender: "female", alignment: "villain", powers: "magic", weapon: "magic", format: "animated-movie", age: "adult", costume: true, facialHair: false },
+  { id: "jon-snow", name: "Jon Snow", source: "Game of Thrones", emoji: "⚔️", color: "#4a4a4a", species: "human", gender: "male", alignment: "hero", powers: "none", weapon: "melee", format: "live-tv", age: "adult", costume: false, facialHair: true },
+  { id: "buzz-lightyear", name: "Buzz Lightyear", source: "Toy Story", emoji: "🚀", color: "#3a6ea5", species: "robot", gender: "male", alignment: "hero", powers: "none", weapon: "none", format: "animated-movie", age: "adult", costume: true, facialHair: false },
+  { id: "katniss", name: "Katniss Everdeen", source: "The Hunger Games", emoji: "🏹", color: "#5a5a3c", species: "human", gender: "female", alignment: "hero", powers: "none", weapon: "ranged", format: "live-movie", age: "teen", costume: false, facialHair: false },
+  { id: "deadpool", name: "Deadpool", source: "Marvel", emoji: "🗡️", color: "#a11d2e", species: "human", gender: "male", alignment: "hero", powers: "superpowers", weapon: "melee", format: "live-movie", age: "adult", costume: true, facialHair: false },
+  { id: "leia", name: "Princess Leia", source: "Star Wars", emoji: "👑", color: "#8a5a9a", species: "human", gender: "female", alignment: "hero", powers: "none", weapon: "ranged", format: "live-movie", age: "adult", costume: false, facialHair: false },
+  { id: "naruto", name: "Naruto Uzumaki", source: "Naruto", emoji: "🍥", color: "#e8912d", species: "human", gender: "male", alignment: "hero", powers: "magic", weapon: "melee", format: "animated-tv", age: "teen", costume: true, facialHair: false },
+  { id: "peter-griffin", name: "Peter Griffin", source: "Family Guy", emoji: "🍺", color: "#e0b13f", species: "human", gender: "male", alignment: "hero", powers: "none", weapon: "none", format: "animated-tv", age: "adult", costume: false, facialHair: false },
+  { id: "legolas", name: "Legolas", source: "Lord of the Rings", emoji: "🏹", color: "#3f6b4f", species: "magical", gender: "male", alignment: "hero", powers: "none", weapon: "ranged", format: "live-movie", age: "adult", costume: true, facialHair: false },
+  { id: "spider-man", name: "Spider-Man", source: "Marvel", emoji: "🕷️", color: "#a11d2e", species: "human", gender: "male", alignment: "hero", powers: "superpowers", weapon: "none", format: "live-movie", age: "teen", costume: true, facialHair: false },
 ];
 
-export const attributeLabels: Record<keyof Character["attributes"], string> = {
-  isHuman: "Are they human?",
-  isMale: "Are they male?",
-  hasSuperpowers: "Do they have superpowers?",
-  isVillain: "Are they a villain?",
-  wearsCostume: "Do they wear a costume?",
-  isAnimated: "Are they from an animated show/movie?",
-  fromMovie: "Are they from a movie (not a TV series)?",
-  hasFacialHair: "Do they have facial hair?",
-  isTeenOrYounger: "Are they a teenager or younger?",
-  wieldsWeapon: "Do they wield a weapon?",
-};
+export interface CategoryValue {
+  value: string;
+  label: string;
+  icon: string;
+}
+
+export interface CategoryDef {
+  key: keyof Pick<Character, "species" | "gender" | "alignment" | "powers" | "weapon" | "format" | "age" | "costume" | "facialHair">;
+  label: string;
+  icon: string;
+  question: string; // "{value}" is replaced with the chosen value's label
+  values: CategoryValue[];
+}
+
+export const categories: CategoryDef[] = [
+  {
+    key: "species",
+    label: "Species",
+    icon: "🧬",
+    question: "Is their species {value}?",
+    values: [
+      { value: "human", label: "Human", icon: "🧑" },
+      { value: "creature", label: "Creature", icon: "🐾" },
+      { value: "robot", label: "Robot", icon: "🤖" },
+      { value: "magical", label: "Magical Being", icon: "🧝" },
+    ],
+  },
+  {
+    key: "gender",
+    label: "Gender",
+    icon: "🚻",
+    question: "Are they {value}?",
+    values: [
+      { value: "male", label: "Male", icon: "👨" },
+      { value: "female", label: "Female", icon: "👩" },
+    ],
+  },
+  {
+    key: "alignment",
+    label: "Alignment",
+    icon: "⚖️",
+    question: "Are they a {value}?",
+    values: [
+      { value: "hero", label: "Hero", icon: "🦸" },
+      { value: "villain", label: "Villain", icon: "🦹" },
+    ],
+  },
+  {
+    key: "powers",
+    label: "Powers",
+    icon: "✨",
+    question: "Is their power type {value}?",
+    values: [
+      { value: "none", label: "None", icon: "🚫" },
+      { value: "superpowers", label: "Superpowers", icon: "💪" },
+      { value: "magic", label: "Magic", icon: "🪄" },
+      { value: "tech", label: "Tech / Skill", icon: "🛠️" },
+    ],
+  },
+  {
+    key: "weapon",
+    label: "Weapon",
+    icon: "🗡️",
+    question: "Is their weapon type {value}?",
+    values: [
+      { value: "none", label: "None", icon: "🚫" },
+      { value: "melee", label: "Melee", icon: "⚔️" },
+      { value: "ranged", label: "Ranged", icon: "🏹" },
+      { value: "magic", label: "Magic / Energy", icon: "🔮" },
+    ],
+  },
+  {
+    key: "format",
+    label: "Format",
+    icon: "🎬",
+    question: "Are they from a {value}?",
+    values: [
+      { value: "live-movie", label: "Live-Action Movie", icon: "🎥" },
+      { value: "live-tv", label: "Live-Action TV Series", icon: "📺" },
+      { value: "animated-movie", label: "Animated Movie", icon: "🎞️" },
+      { value: "animated-tv", label: "Animated TV Series", icon: "📼" },
+    ],
+  },
+  {
+    key: "age",
+    label: "Age Group",
+    icon: "🎂",
+    question: "Are they in the {value} age group?",
+    values: [
+      { value: "teen", label: "Teen", icon: "🧒" },
+      { value: "adult", label: "Adult", icon: "🧑" },
+      { value: "elder", label: "Elder", icon: "👴" },
+    ],
+  },
+  {
+    key: "costume",
+    label: "Costume",
+    icon: "🎭",
+    question: "Do they wear a costume?",
+    values: [
+      { value: "true", label: "Wears a costume", icon: "✅" },
+      { value: "false", label: "No costume", icon: "❌" },
+    ],
+  },
+  {
+    key: "facialHair",
+    label: "Facial Hair",
+    icon: "🧔",
+    question: "Do they have facial hair?",
+    values: [
+      { value: "true", label: "Has facial hair", icon: "✅" },
+      { value: "false", label: "No facial hair", icon: "❌" },
+    ],
+  },
+];
+
+export function categoryValueMatches(character: Character, categoryKey: string, value: string): boolean {
+  return String((character as any)[categoryKey]) === value;
+}
+
+export function buildQuestionText(categoryKey: string, value: string): string {
+  const category = categories.find((c) => c.key === categoryKey);
+  if (!category) return "Unknown question";
+  const valueDef = category.values.find((v) => v.value === value);
+  return category.question.replace("{value}", valueDef?.label ?? value);
+}
