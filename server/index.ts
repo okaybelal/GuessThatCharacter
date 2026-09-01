@@ -1,5 +1,24 @@
 import { WebSocketServer, WebSocket } from "ws";
+import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { characters } from "../src/characters";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const distDir = path.join(__dirname, "..", "dist");
+
+const MIME_TYPES: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".ico": "image/x-icon",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+};
 
 type Team = "Red" | "Blue";
 
@@ -76,7 +95,32 @@ function send(ws: WebSocket, data: unknown) {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data));
 }
 
-const wss = new WebSocketServer({ port: 8787 });
+const httpServer = http.createServer((req, res) => {
+  const url = new URL(req.url || "/", "http://localhost");
+  let filePath = path.join(distDir, url.pathname === "/" ? "index.html" : url.pathname);
+
+  if (!filePath.startsWith(distDir)) {
+    res.writeHead(403);
+    res.end();
+    return;
+  }
+  if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+    filePath = path.join(distDir, "index.html");
+  }
+
+  const ext = path.extname(filePath);
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      res.writeHead(404);
+      res.end("Not found");
+      return;
+    }
+    res.writeHead(200, { "Content-Type": MIME_TYPES[ext] || "application/octet-stream" });
+    res.end(data);
+  });
+});
+
+const wss = new WebSocketServer({ server: httpServer });
 
 wss.on("connection", (ws: WebSocket) => {
   let currentRoomCode: string | null = null;
@@ -223,4 +267,7 @@ wss.on("connection", (ws: WebSocket) => {
   });
 });
 
-console.log("Guess That Character server listening on ws://localhost:8787");
+const PORT = Number(process.env.PORT) || 8787;
+httpServer.listen(PORT, () => {
+  console.log(`Guess That Character server listening on http://localhost:${PORT}`);
+});

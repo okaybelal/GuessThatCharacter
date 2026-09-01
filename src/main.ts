@@ -34,7 +34,9 @@ interface RoomState {
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
-const WS_URL = `ws://${location.hostname}:8787`;
+const WS_URL = import.meta.env.DEV
+  ? `ws://${location.hostname}:8787`
+  : `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}`;
 let socket: WebSocket | null = null;
 let myPlayerId: string | null = null;
 let room: RoomState | null = null;
