@@ -8,11 +8,12 @@ export default async function handler(req: any, res: any) {
   }
   const code = String(req.query.code || "").toUpperCase();
   const playerId = String(req.query.playerId || "");
+  const token = String(req.query.token || "");
   const existing = await getRoomRow(code);
   if (!existing) {
     res.status(404).json({ error: "Room not found." });
     return;
   }
-  const viewerTeam = existing.room.players.find((p) => p.id === playerId)?.team;
-  res.status(200).json({ room: publicRoom(existing.room, viewerTeam) });
+  const player = existing.room.players.find((p) => p.id === playerId && p.token === token);
+  res.status(200).json({ room: publicRoom(existing.room, player?.team) });
 }

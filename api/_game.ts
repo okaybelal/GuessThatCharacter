@@ -1,9 +1,11 @@
-import { characters } from "../src/characters.js";
+import crypto from "node:crypto";
+import { characters, attributeLabels } from "../src/characters.js";
 
 export type Team = "Red" | "Blue";
 
 export interface Player {
   id: string;
+  token: string;
   name: string;
   team: Team;
 }
@@ -25,6 +27,8 @@ export interface Room {
   blueSecretId?: string;
   redEliminated: string[];
   blueEliminated: string[];
+  redCrossed: string[];
+  blueCrossed: string[];
   turnTeam: Team;
   askedThisTurn: boolean;
   log: LogEntry[];
@@ -41,6 +45,16 @@ export class ApiError extends Error {
 
 function newPlayerId() {
   return Math.random().toString(36).slice(2, 10);
+}
+
+function newToken() {
+  return crypto.randomUUID();
+}
+
+function requirePlayer(room: Room, playerId: string, token: string): Player {
+  const player = room.players.find((p) => p.id === playerId);
+  if (!player || player.token !== token) throw new ApiError(403, "Invalid session.");
+  return player;
 }
 
 function otherTeam(team: Team): Team {
@@ -72,46 +86,48 @@ export function pickTeam(room: Room): Team {
   return red <= blue ? "Red" : "Blue";
 }
 
-export function createRoom(name: string): { room: Room; playerId: string } {
+export function createRoom(name: string): { room: Room; playerId: string; token: string } {
   const playerId = newPlayerId();
+  const token = newToken();
   const room: Room = {
     code: genCode(),
     status: "lobby",
-    players: [{ id: playerId, name: String(name || "Player").slice(0, 20), team: "Red" }],
+    players: [{ id: playerId, token, name: String(name || "Player").slice(0, 20), team: "Red" }],
     redEliminated: [],
     blueEliminated: [],
+    redCrossed: [],
+    blueCrossed: [],
     turnTeam: "Red",
     askedThisTurn: false,
     log: [],
   };
-  return { room, playerId };
+  return { room, playerId, token };
 }
 
-export function joinRoom(room: Room, name: string): string {
+export function joinRoom(room: Room, name: string): { playerId: string; token: string } {
   if (room.status !== "lobby") throw new ApiError(400, "Game already in progress.");
   const playerId = newPlayerId();
-  room.players.push({ id: playerId, name: String(name || "Player").slice(0, 20), team: pickTeam(room) });
-  return playerId;
+  const token = newToken();
+  room.players.push({ id: playerId, token, name: String(name || "Player").slice(0, 20), team: pickTeam(room) });
+  return { playerId, token };
 }
 
-export function switchTeam(room: Room, playerId: string, team: string) {
+export function switchTeam(room: Room, playerId: string, token: string, team: string) {
   if (room.status !== "lobby") throw new ApiError(400, "Game already started.");
-  const player = room.players.find((p) => p.id === playerId);
-  if (!player) throw new ApiError(404, "Player not found.");
+  const player = requirePlayer(room, playerId, token);
   player.team = team === "Blue" ? "Blue" : "Red";
 }
 
-export function startGame(room: Room, playerId: string) {
-  if (!room.players.some((p) => p.id === playerId)) throw new ApiError(404, "Player not found.");
+export function startGame(room: Room, playerId: string, token: string) {
+  requirePlayer(room, playerId, token);
   if (room.status !== "lobby") throw new ApiError(400, "Game already started.");
   if (!roomIsReady(room)) throw new ApiError(400, "Need at least one player on each team.");
   room.status = "picking";
 }
 
-export function pickCharacter(room: Room, playerId: string, characterId: string) {
+export function pickCharacter(room: Room, playerId: string, token: string, characterId: string) {
   if (room.status !== "picking") throw new ApiError(400, "Not in the picking phase.");
-  const player = room.players.find((p) => p.id === playerId);
-  if (!player) throw new ApiError(404, "Player not found.");
+  const player = requirePlayer(room, playerId, token);
   if (!characters.some((c) => c.id === characterId)) throw new ApiError(400, "Unknown character.");
 
   if (player.team === "Red") room.redSecretId = characterId;
@@ -124,20 +140,22 @@ export function pickCharacter(room: Room, playerId: string, characterId: string)
     room.log = [];
     room.redEliminated = [];
     room.blueEliminated = [];
+    room.redCrossed = [];
+    room.blueCrossed = [];
   }
 }
 
-export function askQuestion(room: Room, playerId: string, key: string) {
+export function askQuestion(room: Room, playerId: string, token: string, key: string) {
   if (room.status !== "playing") throw new ApiError(400, "Game is not in progress.");
-  const player = room.players.find((p) => p.id === playerId);
-  if (!player || player.team !== room.turnTeam) throw new ApiError(403, "Not your turn.");
+  const player = requirePlayer(room, playerId, token);
+  if (player.team !== room.turnTeam) throw new ApiError(403, "Not your turn.");
   if (room.askedThisTurn) throw new ApiError(400, "You can only ask one question per turn. Pass or guess.");
+  if (!Object.hasOwn(attributeLabels, key)) throw new ApiError(400, "Invalid question.");
 
   const opponent = otherTeam(player.team);
   const opponentSecretId = opponent === "Red" ? room.redSecretId : room.blueSecretId;
   const secret = characters.find((c) => c.id === opponentSecretId)!;
   const answer = (secret.attributes as any)[key];
-  if (answer === undefined) throw new ApiError(400, "Invalid question.");
 
   const eliminated = player.team === "Red" ? room.redEliminated : room.blueEliminated;
   characters.forEach((c) => {
@@ -149,22 +167,39 @@ export function askQuestion(room: Room, playerId: string, key: string) {
   room.askedThisTurn = true;
 }
 
-export function passTurn(room: Room, playerId: string) {
+export function passTurn(room: Room, playerId: string, token: string) {
   if (room.status !== "playing") throw new ApiError(400, "Game is not in progress.");
-  const player = room.players.find((p) => p.id === playerId);
-  if (!player || player.team !== room.turnTeam) throw new ApiError(403, "Not your turn.");
+  const player = requirePlayer(room, playerId, token);
+  if (player.team !== room.turnTeam) throw new ApiError(403, "Not your turn.");
+  if (!room.askedThisTurn) throw new ApiError(400, "Ask your question before passing.");
 
   room.log.push({ team: player.team, playerName: player.name, kind: "pass", result: "Passed" });
   room.turnTeam = otherTeam(player.team);
   room.askedThisTurn = false;
 }
 
-export function makeGuess(room: Room, playerId: string, characterId: string) {
+export function toggleCross(room: Room, playerId: string, token: string, characterId: string) {
   if (room.status !== "playing") throw new ApiError(400, "Game is not in progress.");
-  const player = room.players.find((p) => p.id === playerId);
-  if (!player || player.team !== room.turnTeam) throw new ApiError(403, "Not your turn.");
+  const player = requirePlayer(room, playerId, token);
+  if (!characters.some((c) => c.id === characterId)) throw new ApiError(400, "Unknown character.");
+
+  const crossed = player.team === "Red" ? room.redCrossed : room.blueCrossed;
+  const idx = crossed.indexOf(characterId);
+  if (idx === -1) crossed.push(characterId);
+  else crossed.splice(idx, 1);
+}
+
+export function makeGuess(room: Room, playerId: string, token: string, characterId: string) {
+  if (room.status !== "playing") throw new ApiError(400, "Game is not in progress.");
+  const player = requirePlayer(room, playerId, token);
+  if (player.team !== room.turnTeam) throw new ApiError(403, "Not your turn.");
   const guessed = characters.find((c) => c.id === characterId);
   if (!guessed) throw new ApiError(400, "Unknown character.");
+
+  const eliminated = player.team === "Red" ? room.redEliminated : room.blueEliminated;
+  const crossed = player.team === "Red" ? room.redCrossed : room.blueCrossed;
+  const remainingCount = characters.filter((c) => !eliminated.includes(c.id) && !crossed.includes(c.id)).length;
+  if (remainingCount !== 1) throw new ApiError(400, "You can only guess once you've narrowed it down to one character.");
 
   const opponent = otherTeam(player.team);
   const opponentSecretId = opponent === "Red" ? room.redSecretId : room.blueSecretId;
@@ -176,22 +211,37 @@ export function makeGuess(room: Room, playerId: string, characterId: string) {
   room.winner = correct ? player.team : opponent;
 }
 
-export function restartGame(room: Room, playerId: string) {
-  if (!room.players.some((p) => p.id === playerId)) throw new ApiError(404, "Player not found.");
+export function restartGame(room: Room, playerId: string, token: string) {
+  requirePlayer(room, playerId, token);
   if (room.status !== "finished") throw new ApiError(400, "Game is not finished yet.");
   room.status = "picking";
   room.redSecretId = undefined;
   room.blueSecretId = undefined;
   room.redEliminated = [];
   room.blueEliminated = [];
+  room.redCrossed = [];
+  room.blueCrossed = [];
   room.log = [];
   room.winner = undefined;
   room.turnTeam = "Red";
   room.askedThisTurn = false;
 }
 
-export function leaveRoom(room: Room, playerId: string) {
+export function leaveRoom(room: Room, playerId: string, token: string) {
+  requirePlayer(room, playerId, token);
   room.players = room.players.filter((p) => p.id !== playerId);
+
+  if (room.status === "playing" || room.status === "picking") {
+    const redCount = room.players.filter((p) => p.team === "Red").length;
+    const blueCount = room.players.filter((p) => p.team === "Blue").length;
+    if (redCount === 0 && blueCount > 0) {
+      room.status = "finished";
+      room.winner = "Blue";
+    } else if (blueCount === 0 && redCount > 0) {
+      room.status = "finished";
+      room.winner = "Red";
+    }
+  }
 }
 
 export function publicRoom(room: Room, viewerTeam?: Team) {
@@ -199,7 +249,7 @@ export function publicRoom(room: Room, viewerTeam?: Team) {
   return {
     code: room.code,
     status: room.status,
-    players: room.players,
+    players: room.players.map((p) => ({ id: p.id, name: p.name, team: p.team })),
     turnTeam: room.turnTeam,
     askedThisTurn: room.askedThisTurn,
     log: room.log,
@@ -208,6 +258,8 @@ export function publicRoom(room: Room, viewerTeam?: Team) {
     bluePicked: !!room.blueSecretId,
     redEliminated: room.redEliminated,
     blueEliminated: room.blueEliminated,
+    redCrossed: room.redCrossed,
+    blueCrossed: room.blueCrossed,
     mySecret: viewerTeam ? charInfo(viewerTeam === "Red" ? room.redSecretId : room.blueSecretId) ?? null : null,
     reveal: finished ? { red: charInfo(room.redSecretId), blue: charInfo(room.blueSecretId) } : undefined,
   };

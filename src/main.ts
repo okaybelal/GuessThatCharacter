@@ -38,18 +38,24 @@ interface RoomState {
   bluePicked: boolean;
   redEliminated: string[];
   blueEliminated: string[];
+  redCrossed: string[];
+  blueCrossed: string[];
   mySecret: CharInfo | null;
   reveal?: { red?: CharInfo; blue?: CharInfo };
 }
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
-let selfCrossed = new Set<string>();
 
 let myPlayerId: string | null = null;
+let myToken: string | null = null;
 let room: RoomState | null = null;
 let errorMsg = "";
 let playerName = localStorage.getItem("gtc-name") || "";
 let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+function escapeHtml(str: string): string {
+  return str.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+}
 
 async function api(path: string, method: string, body?: unknown) {
   const res = await fetch(`/api${path}`, {
@@ -73,13 +79,14 @@ function startPolling(code: string) {
   stopPolling();
   pollTimer = setInterval(async () => {
     try {
-      const data = await api(`/rooms/${code}?playerId=${myPlayerId}`, "GET");
+      const data = await api(`/rooms/${code}?playerId=${myPlayerId}&token=${myToken}`, "GET");
       room = data.room;
       render();
     } catch {
       stopPolling();
       room = null;
       myPlayerId = null;
+      myToken = null;
       errorMsg = "Room no longer available.";
       render();
     }
@@ -92,6 +99,7 @@ async function createRoom() {
   try {
     const data = await api("/rooms", "POST", { name: playerName });
     myPlayerId = data.playerId;
+    myToken = data.token;
     room = data.room;
     errorMsg = "";
     startPolling(room!.code);
@@ -102,13 +110,18 @@ async function createRoom() {
   }
 }
 
+async function roomAction(code: string, body: Record<string, unknown>) {
+  return api(`/rooms/${code}/action`, "POST", body);
+}
+
 async function joinRoom(code: string) {
   const trimmed = code.trim().toUpperCase();
   if (!playerName.trim() || !trimmed) return;
   localStorage.setItem("gtc-name", playerName);
   try {
-    const data = await api(`/rooms/${trimmed}/join`, "POST", { name: playerName });
+    const data = await roomAction(trimmed, { action: "join", name: playerName });
     myPlayerId = data.playerId;
+    myToken = data.token;
     room = data.room;
     errorMsg = "";
     startPolling(room!.code);
@@ -122,7 +135,7 @@ async function joinRoom(code: string) {
 async function switchTeam(team: Team) {
   if (!room || !myPlayerId) return;
   try {
-    const data = await api(`/rooms/${room.code}/team`, "POST", { playerId: myPlayerId, team });
+    const data = await roomAction(room.code, { action: "team", playerId: myPlayerId, token: myToken, team });
     room = data.room;
     render();
   } catch (e: any) {
@@ -134,10 +147,9 @@ async function switchTeam(team: Team) {
 async function startGame() {
   if (!room || !myPlayerId) return;
   try {
-    const data = await api(`/rooms/${room.code}/start`, "POST", { playerId: myPlayerId });
+    const data = await roomAction(room.code, { action: "start", playerId: myPlayerId, token: myToken });
     room = data.room;
     errorMsg = "";
-    selfCrossed.clear();
     render();
   } catch (e: any) {
     errorMsg = e.message;
@@ -145,16 +157,10 @@ async function startGame() {
   }
 }
 
-function toggleSelfCrossed(characterId: string) {
-  if (selfCrossed.has(characterId)) selfCrossed.delete(characterId);
-  else selfCrossed.add(characterId);
-  render();
-}
-
 async function pickCharacter(characterId: string) {
   if (!room || !myPlayerId) return;
   try {
-    const data = await api(`/rooms/${room.code}/pick`, "POST", { playerId: myPlayerId, characterId });
+    const data = await roomAction(room.code, { action: "pick", playerId: myPlayerId, token: myToken, characterId });
     room = data.room;
     render();
   } catch (e: any) {
@@ -166,7 +172,7 @@ async function pickCharacter(characterId: string) {
 async function askQuestion(key: AttrKey) {
   if (!room || !myPlayerId) return;
   try {
-    const data = await api(`/rooms/${room.code}/question`, "POST", { playerId: myPlayerId, key });
+    const data = await roomAction(room.code, { action: "question", playerId: myPlayerId, token: myToken, key });
     room = data.room;
     render();
   } catch (e: any) {
@@ -178,7 +184,19 @@ async function askQuestion(key: AttrKey) {
 async function passTurn() {
   if (!room || !myPlayerId) return;
   try {
-    const data = await api(`/rooms/${room.code}/pass`, "POST", { playerId: myPlayerId });
+    const data = await roomAction(room.code, { action: "pass", playerId: myPlayerId, token: myToken });
+    room = data.room;
+    render();
+  } catch (e: any) {
+    errorMsg = e.message;
+    render();
+  }
+}
+
+async function toggleCross(characterId: string) {
+  if (!room || !myPlayerId) return;
+  try {
+    const data = await roomAction(room.code, { action: "cross", playerId: myPlayerId, token: myToken, characterId });
     room = data.room;
     render();
   } catch (e: any) {
@@ -190,7 +208,7 @@ async function passTurn() {
 async function makeGuess(characterId: string) {
   if (!room || !myPlayerId) return;
   try {
-    const data = await api(`/rooms/${room.code}/guess`, "POST", { playerId: myPlayerId, characterId });
+    const data = await roomAction(room.code, { action: "guess", playerId: myPlayerId, token: myToken, characterId });
     room = data.room;
     render();
   } catch (e: any) {
@@ -202,10 +220,9 @@ async function makeGuess(characterId: string) {
 async function restartGame() {
   if (!room || !myPlayerId) return;
   try {
-    const data = await api(`/rooms/${room.code}/restart`, "POST", { playerId: myPlayerId });
+    const data = await roomAction(room.code, { action: "restart", playerId: myPlayerId, token: myToken });
     room = data.room;
     errorMsg = "";
-    selfCrossed.clear();
     render();
   } catch (e: any) {
     errorMsg = e.message;
@@ -216,7 +233,7 @@ async function restartGame() {
 async function leaveRoom() {
   if (room && myPlayerId) {
     try {
-      await api(`/rooms/${room.code}/leave`, "POST", { playerId: myPlayerId });
+      await roomAction(room.code, { action: "leave", playerId: myPlayerId, token: myToken });
     } catch {
       // room may already be gone; leaving locally regardless
     }
@@ -224,6 +241,7 @@ async function leaveRoom() {
   stopPolling();
   room = null;
   myPlayerId = null;
+  myToken = null;
   render();
 }
 
@@ -260,7 +278,7 @@ function renderLobby() {
       <section class="panel">
         <label class="field">
           <span>Your name</span>
-          <input id="name-input" type="text" maxlength="20" value="${playerName}" placeholder="Enter your name" />
+          <input id="name-input" type="text" maxlength="20" value="${escapeHtml(playerName)}" placeholder="Enter your name" />
         </label>
 
         <div class="lobby-actions">
@@ -277,7 +295,7 @@ function renderLobby() {
             </div>
           </div>
         </div>
-        ${errorMsg ? `<p class="error">${errorMsg}</p>` : ""}
+        ${errorMsg ? `<p class="error">${escapeHtml(errorMsg)}</p>` : ""}
       </section>
     </div>
   `;
@@ -313,19 +331,19 @@ function renderWaitingRoom() {
         <div class="teams-preview">
           <div class="team-col team-red">
             <h2>🔴 Team Red (${teamRed.length})</h2>
-            <ul>${teamRed.map((p) => `<li>${p.name}${p.id === myPlayerId ? " (you)" : ""}</li>`).join("") || "<li class='empty'>Empty</li>"}</ul>
+            <ul>${teamRed.map((p) => `<li>${escapeHtml(p.name)}${p.id === myPlayerId ? " (you)" : ""}</li>`).join("") || "<li class='empty'>Empty</li>"}</ul>
             ${my !== "Red" ? `<button class="switch-btn" data-team="Red">Join Red</button>` : ""}
           </div>
           <div class="team-col team-blue">
             <h2>🔵 Team Blue (${teamBlue.length})</h2>
-            <ul>${teamBlue.map((p) => `<li>${p.name}${p.id === myPlayerId ? " (you)" : ""}</li>`).join("") || "<li class='empty'>Empty</li>"}</ul>
+            <ul>${teamBlue.map((p) => `<li>${escapeHtml(p.name)}${p.id === myPlayerId ? " (you)" : ""}</li>`).join("") || "<li class='empty'>Empty</li>"}</ul>
             ${my !== "Blue" ? `<button class="switch-btn" data-team="Blue">Join Blue</button>` : ""}
           </div>
         </div>
 
         <button id="start-btn" class="restart" ${ready ? "" : "disabled"}>${ready ? "▶️ Start Game" : "Need at least 1 player on each team"}</button>
         <button id="leave-btn" class="leave">Leave Room</button>
-        ${errorMsg ? `<p class="error">${errorMsg}</p>` : ""}
+        ${errorMsg ? `<p class="error">${escapeHtml(errorMsg)}</p>` : ""}
       </section>
     </div>
   `;
@@ -349,7 +367,7 @@ function renderPicking() {
         <h1>🎭 Guess That Character</h1>
         <p class="subtitle">Room ${r.code} · Pick a secret character for the other team to guess</p>
         <p class="counter">
-          ${myPicked ? `✅ Your team picked <strong>${r.mySecret!.name}</strong>` : "❓ Your team hasn't picked yet"}
+          ${myPicked ? `✅ Your team picked <strong>${escapeHtml(r.mySecret!.name)}</strong>` : "❓ Your team hasn't picked yet"}
           &nbsp;·&nbsp;
           ${opponentPicked ? "✅ Opponent is ready" : "⏳ Waiting on opponent to pick"}
         </p>
@@ -389,7 +407,8 @@ function renderGame() {
   const isMyTurn = team === r.turnTeam;
   const finished = r.status === "finished";
   const activeEliminated = r.turnTeam === "Blue" ? r.blueEliminated : r.redEliminated;
-  const remaining = characters.filter((c) => !activeEliminated.includes(c.id) && !selfCrossed.has(c.id));
+  const activeCrossed = r.turnTeam === "Blue" ? r.blueCrossed : r.redCrossed;
+  const remaining = characters.filter((c) => !activeEliminated.includes(c.id) && !activeCrossed.includes(c.id));
   const isLastCard = remaining.length === 1;
   const canAct = isLastCard ? isMyTurn && !finished : isMyTurn && !finished && r.askedThisTurn;
 
@@ -397,13 +416,13 @@ function renderGame() {
     <div class="game">
       <header>
         <h1>🎭 Guess That Character</h1>
-        <p class="subtitle">Room ${r.code}${r.mySecret ? ` · Your character: <strong>${r.mySecret.name}</strong>` : ""}</p>
+        <p class="subtitle">Room ${r.code}${r.mySecret ? ` · Your character: <strong>${escapeHtml(r.mySecret.name)}</strong>` : ""}</p>
         ${!finished ? `<p class="counter">${isMyTurn ? "🟢 Your team's turn!" : `⏳ Waiting on Team ${r.turnTeam}`}</p>` : ""}
       </header>
 
       <section class="teams-bar">
-        <div class="team-chip team-red ${r.turnTeam === "Red" ? "active" : ""}">🔴 Red: ${r.players.filter((p) => p.team === "Red").map((p) => p.name).join(", ") || "—"}</div>
-        <div class="team-chip team-blue ${r.turnTeam === "Blue" ? "active" : ""}">🔵 Blue: ${r.players.filter((p) => p.team === "Blue").map((p) => p.name).join(", ") || "—"}</div>
+        <div class="team-chip team-red ${r.turnTeam === "Red" ? "active" : ""}">🔴 Red: ${r.players.filter((p) => p.team === "Red").map((p) => escapeHtml(p.name)).join(", ") || "—"}</div>
+        <div class="team-chip team-blue ${r.turnTeam === "Blue" ? "active" : ""}">🔵 Blue: ${r.players.filter((p) => p.team === "Blue").map((p) => escapeHtml(p.name)).join(", ") || "—"}</div>
       </section>
 
       <section class="questions">
@@ -420,14 +439,15 @@ function renderGame() {
             .reverse()
             .slice(0, 8)
             .map((entry) => {
+              const name = escapeHtml(entry.playerName);
               if (entry.kind === "question") {
-                return `<div class="log-entry">Team ${entry.team} · ${entry.playerName}: "${attributeLabels[entry.key as AttrKey]}" → <strong>${entry.result}</strong></div>`;
+                return `<div class="log-entry">Team ${entry.team} · ${name}: "${attributeLabels[entry.key as AttrKey]}" → <strong>${entry.result}</strong></div>`;
               }
               if (entry.kind === "pass") {
-                return `<div class="log-entry">Team ${entry.team} · ${entry.playerName} passed the turn</div>`;
+                return `<div class="log-entry">Team ${entry.team} · ${name} passed the turn</div>`;
               }
               const c = characters.find((ch) => ch.id === entry.characterId);
-              return `<div class="log-entry">Team ${entry.team} · ${entry.playerName} guessed <strong>${c?.name}</strong> → <strong>${entry.result}</strong></div>`;
+              return `<div class="log-entry">Team ${entry.team} · ${name} guessed <strong>${c?.name}</strong> → <strong>${entry.result}</strong></div>`;
             })
             .join("")}
         </div>
@@ -435,12 +455,12 @@ function renderGame() {
 
       <section class="board">
         <h2>${finished ? "Characters" : `Team ${r.turnTeam}'s Board${isMyTurn ? " (Your Turn)" : ""}`}</h2>
-        ${!finished ? `<p class="hint">Click a character to cross it off your own list. Once you're down to one, lock in your guess below — get it wrong and you lose.</p>` : ""}
+        ${!finished ? `<p class="hint">Click a character to cross it off your team's shared list. Once you're down to one, lock in your guess below — get it wrong and you lose.</p>` : ""}
         <div class="grid">
           ${characters
             .map((c) => {
               const isOut = activeEliminated.includes(c.id);
-              const crossed = selfCrossed.has(c.id);
+              const crossed = activeCrossed.includes(c.id);
               return `
               <div class="card ${isOut ? "eliminated" : ""} ${crossed ? "self-crossed" : ""}" data-id="${c.id}">
                 <span class="avatar">${avatarSVG(c)}</span>
@@ -469,7 +489,7 @@ function renderGame() {
     btn.addEventListener("click", () => askQuestion(btn.dataset.key as AttrKey));
   });
   document.querySelectorAll<HTMLDivElement>(".board .card:not(.eliminated)").forEach((card) => {
-    card.addEventListener("click", () => toggleSelfCrossed(card.dataset.id!));
+    card.addEventListener("click", () => toggleCross(card.dataset.id!));
   });
   if (canAct) {
     document.querySelector<HTMLButtonElement>("#turn-action-btn")!.addEventListener("click", () => {

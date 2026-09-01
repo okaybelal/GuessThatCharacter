@@ -10,7 +10,16 @@ export async function getRoomRow(code: string): Promise<{ room: Room; version: n
 }
 
 export async function insertRoomRow(room: Room) {
-  await sql`INSERT INTO rooms (code, data, version) VALUES (${room.code}, ${JSON.stringify(room)}::jsonb, 0)`;
+  try {
+    await sql`INSERT INTO rooms (code, data, version) VALUES (${room.code}, ${JSON.stringify(room)}::jsonb, 0)`;
+  } catch (e: any) {
+    if (e?.code === "23505") {
+      const err: any = new Error("Room code already exists.");
+      err.code = "23505";
+      throw err;
+    }
+    throw e;
+  }
 }
 
 async function updateRoomRow(code: string, room: Room, expectedVersion: number): Promise<boolean> {

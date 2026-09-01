@@ -8,9 +8,22 @@ export default async function handler(req: any, res: any) {
   }
   try {
     const { name } = req.body || {};
-    const { room, playerId } = createRoom(name);
-    await insertRoomRow(room);
-    res.status(200).json({ playerId, room: publicRoom(room, "Red") });
+    let lastError: any;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const { room, playerId, token } = createRoom(name);
+      try {
+        await insertRoomRow(room);
+        res.status(200).json({ playerId, token, room: publicRoom(room, "Red") });
+        return;
+      } catch (e: any) {
+        if (e?.code === "23505") {
+          lastError = e;
+          continue;
+        }
+        throw e;
+      }
+    }
+    throw lastError || new Error("Could not create room.");
   } catch (e: any) {
     res.status(e.status || 500).json({ error: e.message || "Internal error" });
   }
