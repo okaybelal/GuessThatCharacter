@@ -14,7 +14,7 @@ interface PublicPlayer {
 interface LogEntry {
   team: Team;
   playerName: string;
-  kind: "question" | "guess";
+  kind: "question" | "guess" | "pass";
   key?: string;
   characterId?: string;
   result: string;
@@ -166,6 +166,18 @@ async function askQuestion(key: AttrKey) {
   if (!room || !myPlayerId) return;
   try {
     const data = await api(`/rooms/${room.code}/question`, "POST", { playerId: myPlayerId, key });
+    room = data.room;
+    render();
+  } catch (e: any) {
+    errorMsg = e.message;
+    render();
+  }
+}
+
+async function passTurn() {
+  if (!room || !myPlayerId) return;
+  try {
+    const data = await api(`/rooms/${room.code}/pass`, "POST", { playerId: myPlayerId });
     room = data.room;
     render();
   } catch (e: any) {
@@ -399,6 +411,7 @@ function renderGame() {
             .map(([key, label]) => `<button class="q-btn" data-key="${key}" ${isMyTurn && !finished ? "" : "disabled"}>${label}</button>`)
             .join("")}
         </div>
+        ${!finished ? `<button id="pass-btn" class="pass-btn" ${isMyTurn ? "" : "disabled"}>⏭️ Pass Turn</button>` : ""}
         <div class="log">
           ${r.log
             .slice()
@@ -407,6 +420,9 @@ function renderGame() {
             .map((entry) => {
               if (entry.kind === "question") {
                 return `<div class="log-entry">Team ${entry.team} · ${entry.playerName}: "${attributeLabels[entry.key as AttrKey]}" → <strong>${entry.result}</strong></div>`;
+              }
+              if (entry.kind === "pass") {
+                return `<div class="log-entry">Team ${entry.team} · ${entry.playerName} passed the turn</div>`;
               }
               const c = characters.find((ch) => ch.id === entry.characterId);
               return `<div class="log-entry">Team ${entry.team} · ${entry.playerName} guessed <strong>${c?.name}</strong> → <strong>${entry.result}</strong></div>`;
@@ -450,6 +466,7 @@ function renderGame() {
   document.querySelectorAll<HTMLButtonElement>(".q-btn").forEach((btn) => {
     btn.addEventListener("click", () => askQuestion(btn.dataset.key as AttrKey));
   });
+  document.querySelector<HTMLButtonElement>("#pass-btn")?.addEventListener("click", passTurn);
   document.querySelectorAll<HTMLDivElement>(".board .card:not(.eliminated)").forEach((card) => {
     card.addEventListener("click", () => toggleSelfCrossed(card.dataset.id!));
   });

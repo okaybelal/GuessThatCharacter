@@ -11,7 +11,7 @@ export interface Player {
 export interface LogEntry {
   team: Team;
   playerName: string;
-  kind: "question" | "guess";
+  kind: "question" | "guess" | "pass";
   key?: string;
   characterId?: string;
   result: string;
@@ -142,7 +142,15 @@ export function askQuestion(room: Room, playerId: string, key: string) {
   });
 
   room.log.push({ team: player.team, playerName: player.name, kind: "question", key, result: answer ? "Yes" : "No" });
-  room.turnTeam = opponent;
+}
+
+export function passTurn(room: Room, playerId: string) {
+  if (room.status !== "playing") throw new ApiError(400, "Game is not in progress.");
+  const player = room.players.find((p) => p.id === playerId);
+  if (!player || player.team !== room.turnTeam) throw new ApiError(403, "Not your turn.");
+
+  room.log.push({ team: player.team, playerName: player.name, kind: "pass", result: "Passed" });
+  room.turnTeam = otherTeam(player.team);
 }
 
 export function makeGuess(room: Room, playerId: string, characterId: string) {
