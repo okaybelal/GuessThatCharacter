@@ -366,7 +366,7 @@ function renderGame() {
   const team = myTeam();
   const isMyTurn = team === r.turnTeam;
   const finished = r.status === "finished";
-  const myEliminated = team === "Blue" ? r.blueEliminated : r.redEliminated;
+  const activeEliminated = r.turnTeam === "Blue" ? r.blueEliminated : r.redEliminated;
 
   app.innerHTML = `
     <div class="game">
@@ -405,11 +405,11 @@ function renderGame() {
       </section>
 
       <section class="board">
-        <h2>Characters</h2>
+        <h2>${finished ? "Characters" : `Team ${r.turnTeam}'s Board${isMyTurn ? " (Your Turn)" : ""}`}</h2>
         <div class="grid">
           ${characters
             .map((c) => {
-              const isOut = myEliminated.includes(c.id);
+              const isOut = activeEliminated.includes(c.id);
               const disabled = isOut || !isMyTurn || finished;
               return `
               <button class="card ${isOut ? "eliminated" : ""}" data-id="${c.id}" ${disabled ? "disabled" : ""}>
