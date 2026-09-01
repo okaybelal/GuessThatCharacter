@@ -1,5 +1,5 @@
 import { withRoom } from "../../_db.js";
-import { startGame, publicRoom } from "../../_game.js";
+import { restartGame, publicRoom } from "../../_game.js";
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
@@ -10,7 +10,7 @@ export default async function handler(req: any, res: any) {
   const { playerId } = req.body || {};
   try {
     const room = await withRoom(code, (r) => {
-      startGame(r, playerId);
+      restartGame(r, playerId);
     });
     if (!room) {
       res.status(404).json({ error: "Room not found." });

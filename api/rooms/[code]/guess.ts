@@ -16,7 +16,8 @@ export default async function handler(req: any, res: any) {
       res.status(404).json({ error: "Room not found." });
       return;
     }
-    res.status(200).json({ room: publicRoom(room) });
+    const viewerTeam = room.players.find((p) => p.id === playerId)?.team;
+    res.status(200).json({ room: publicRoom(room, viewerTeam) });
   } catch (e: any) {
     res.status(e.status || 500).json({ error: e.message || "Internal error" });
   }

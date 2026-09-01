@@ -1,5 +1,5 @@
 import { withRoom } from "../../_db.js";
-import { startGame, publicRoom } from "../../_game.js";
+import { pickCharacter, publicRoom } from "../../_game.js";
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
@@ -7,10 +7,10 @@ export default async function handler(req: any, res: any) {
     return;
   }
   const code = String(req.query.code || "").toUpperCase();
-  const { playerId } = req.body || {};
+  const { playerId, characterId } = req.body || {};
   try {
     const room = await withRoom(code, (r) => {
-      startGame(r, playerId);
+      pickCharacter(r, playerId, characterId);
     });
     if (!room) {
       res.status(404).json({ error: "Room not found." });

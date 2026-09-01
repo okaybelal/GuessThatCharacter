@@ -20,16 +20,25 @@ interface LogEntry {
   result: string;
 }
 
+interface CharInfo {
+  id: string;
+  name: string;
+  source: string;
+}
+
 interface RoomState {
   code: string;
-  status: "lobby" | "playing" | "finished";
+  status: "lobby" | "picking" | "playing" | "finished";
   players: PublicPlayer[];
-  eliminated: string[];
   turnTeam: Team;
   log: LogEntry[];
   winner?: Team;
-  secretName?: string;
-  secretSource?: string;
+  redPicked: boolean;
+  bluePicked: boolean;
+  redEliminated: string[];
+  blueEliminated: string[];
+  mySecret: CharInfo | null;
+  reveal?: { red?: CharInfo; blue?: CharInfo };
 }
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -62,7 +71,7 @@ function startPolling(code: string) {
   stopPolling();
   pollTimer = setInterval(async () => {
     try {
-      const data = await api(`/rooms/${code}`, "GET");
+      const data = await api(`/rooms/${code}?playerId=${myPlayerId}`, "GET");
       room = data.room;
       render();
     } catch {
@@ -133,6 +142,18 @@ async function startGame() {
   }
 }
 
+async function pickCharacter(characterId: string) {
+  if (!room || !myPlayerId) return;
+  try {
+    const data = await api(`/rooms/${room.code}/pick`, "POST", { playerId: myPlayerId, characterId });
+    room = data.room;
+    render();
+  } catch (e: any) {
+    errorMsg = e.message;
+    render();
+  }
+}
+
 async function askQuestion(key: AttrKey) {
   if (!room || !myPlayerId) return;
   try {
@@ -150,6 +171,19 @@ async function makeGuess(characterId: string) {
   try {
     const data = await api(`/rooms/${room.code}/guess`, "POST", { playerId: myPlayerId, characterId });
     room = data.room;
+    render();
+  } catch (e: any) {
+    errorMsg = e.message;
+    render();
+  }
+}
+
+async function restartGame() {
+  if (!room || !myPlayerId) return;
+  try {
+    const data = await api(`/rooms/${room.code}/restart`, "POST", { playerId: myPlayerId });
+    room = data.room;
+    errorMsg = "";
     render();
   } catch (e: any) {
     errorMsg = e.message;
@@ -180,9 +214,10 @@ function render() {
   if (!room) {
     document.body.removeAttribute("data-turn");
     renderLobby();
-  } else if (room.status === "lobby") {
+  } else if (room.status === "lobby" || room.status === "picking") {
     document.body.removeAttribute("data-turn");
-    renderWaitingRoom();
+    if (room.status === "lobby") renderWaitingRoom();
+    else renderPicking();
   } else if (room.status === "finished") {
     document.body.setAttribute("data-turn", room.winner === "Blue" ? "blue" : "red");
     renderGame();
@@ -197,7 +232,7 @@ function renderLobby() {
     <div class="game lobby">
       <header>
         <h1>🎭 Guess That Character</h1>
-        <p class="subtitle">Play solo vs. solo or team up with friends — Red vs. Blue take turns asking yes/no questions to find the secret character first.</p>
+        <p class="subtitle">Play solo vs. solo or team up with friends — each side secretly picks a character, then you take turns asking yes/no questions to guess the other side's pick first.</p>
       </header>
 
       <section class="panel">
@@ -280,22 +315,65 @@ function renderWaitingRoom() {
   });
 }
 
-function renderGame() {
+function renderPicking() {
   const r = room!;
   const team = myTeam();
-  const isMyTurn = team === r.turnTeam;
-  const finished = r.status === "finished";
+  const myPicked = !!r.mySecret;
+  const opponentPicked = team === "Red" ? r.bluePicked : r.redPicked;
 
   app.innerHTML = `
     <div class="game">
       <header>
         <h1>🎭 Guess That Character</h1>
-        <p class="subtitle">Room ${r.code}</p>
-        ${
-          finished
-            ? `<p class="counter winner-banner">🏆 Team ${r.winner} wins! It was <strong>${r.secretName}</strong> (${r.secretSource})</p>`
-            : `<p class="counter">${isMyTurn ? "🟢 Your team's turn!" : `⏳ Waiting on Team ${r.turnTeam}`}</p>`
-        }
+        <p class="subtitle">Room ${r.code} · Pick a secret character for the other team to guess</p>
+        <p class="counter">
+          ${myPicked ? `✅ Your team picked <strong>${r.mySecret!.name}</strong>` : "❓ Your team hasn't picked yet"}
+          &nbsp;·&nbsp;
+          ${opponentPicked ? "✅ Opponent is ready" : "⏳ Waiting on opponent to pick"}
+        </p>
+      </header>
+
+      <section class="board">
+        <h2>Choose Your Team's Character ${team ? `(Team ${team})` : ""}</h2>
+        <div class="grid">
+          ${characters
+            .map((c) => {
+              const selected = r.mySecret?.id === c.id;
+              return `
+              <button class="card ${selected ? "picked" : ""}" data-id="${c.id}">
+                <span class="avatar">${avatarSVG(c)}</span>
+                <span class="name">${c.name}</span>
+                <span class="source">${c.source}</span>
+                ${selected ? `<span class="picked-badge">Your Pick</span>` : ""}
+              </button>`;
+            })
+            .join("")}
+        </div>
+      </section>
+
+      <button id="leave-btn" class="leave">Leave Room</button>
+    </div>
+  `;
+
+  document.querySelectorAll<HTMLButtonElement>(".card").forEach((btn) => {
+    btn.addEventListener("click", () => pickCharacter(btn.dataset.id!));
+  });
+  document.querySelector<HTMLButtonElement>("#leave-btn")!.addEventListener("click", leaveRoom);
+}
+
+function renderGame() {
+  const r = room!;
+  const team = myTeam();
+  const isMyTurn = team === r.turnTeam;
+  const finished = r.status === "finished";
+  const myEliminated = team === "Blue" ? r.blueEliminated : r.redEliminated;
+
+  app.innerHTML = `
+    <div class="game">
+      <header>
+        <h1>🎭 Guess That Character</h1>
+        <p class="subtitle">Room ${r.code}${r.mySecret ? ` · Your character: <strong>${r.mySecret.name}</strong>` : ""}</p>
+        ${!finished ? `<p class="counter">${isMyTurn ? "🟢 Your team's turn!" : `⏳ Waiting on Team ${r.turnTeam}`}</p>` : ""}
       </header>
 
       <section class="teams-bar">
@@ -331,7 +409,7 @@ function renderGame() {
         <div class="grid">
           ${characters
             .map((c) => {
-              const isOut = r.eliminated.includes(c.id);
+              const isOut = myEliminated.includes(c.id);
               const disabled = isOut || !isMyTurn || finished;
               return `
               <button class="card ${isOut ? "eliminated" : ""}" data-id="${c.id}" ${disabled ? "disabled" : ""}>
@@ -346,6 +424,8 @@ function renderGame() {
 
       <button id="leave-btn" class="leave">Leave Room</button>
     </div>
+
+    ${finished ? renderWinnerModal(r, team) : ""}
   `;
 
   document.querySelectorAll<HTMLButtonElement>(".q-btn").forEach((btn) => {
@@ -355,6 +435,41 @@ function renderGame() {
     btn.addEventListener("click", () => makeGuess(btn.dataset.id!));
   });
   document.querySelector<HTMLButtonElement>("#leave-btn")!.addEventListener("click", leaveRoom);
+
+  if (finished) {
+    document.querySelector<HTMLButtonElement>("#play-again-btn")?.addEventListener("click", restartGame);
+    document.querySelector<HTMLButtonElement>("#modal-leave-btn")?.addEventListener("click", leaveRoom);
+  }
+}
+
+function renderWinnerModal(r: RoomState, team: Team | null) {
+  const won = r.winner === team;
+  const redChar = r.reveal?.red;
+  const blueChar = r.reveal?.blue;
+
+  return `
+    <div class="modal-backdrop">
+      <div class="modal-card ${r.winner === "Blue" ? "team-blue" : "team-red"}">
+        <div class="modal-emoji">${won ? "🎉" : "😢"}</div>
+        <h2>${won ? "Congratulations!" : `Team ${r.winner} Wins!`}</h2>
+        <p class="modal-sub">${won ? "Your team guessed it right!" : "Better luck next time."}</p>
+        <div class="reveal-row">
+          <div class="reveal-item">
+            <span class="reveal-label">🔴 Red's character</span>
+            <strong>${redChar?.name ?? "—"}</strong>
+          </div>
+          <div class="reveal-item">
+            <span class="reveal-label">🔵 Blue's character</span>
+            <strong>${blueChar?.name ?? "—"}</strong>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button id="play-again-btn" class="restart">🔁 Play Again</button>
+          <button id="modal-leave-btn" class="leave">Leave Room</button>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 render();

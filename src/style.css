@@ -397,3 +397,120 @@ h2 {
 .log-entry strong {
   color: var(--text);
 }
+
+.card.picked {
+  border-color: var(--accent);
+  background: rgba(139, 92, 246, 0.12);
+}
+
+.picked-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Winner modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 6, 14, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 50;
+  animation: modal-fade-in 0.25s ease;
+}
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  animation: modal-pop-in 0.25s ease;
+}
+
+@keyframes modal-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-card.team-red {
+  box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.4), 0 20px 60px rgba(248, 113, 113, 0.12);
+}
+
+.modal-card.team-blue {
+  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.4), 0 20px 60px rgba(96, 165, 250, 0.12);
+}
+
+.modal-emoji {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.modal-card h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.5rem;
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.modal-sub {
+  color: var(--text-dim);
+  margin: 0 0 1.5rem;
+}
+
+.reveal-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.reveal-item {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.reveal-label {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.modal-actions .restart,
+.modal-actions .leave {
+  margin: 0;
+  width: 100%;
+}

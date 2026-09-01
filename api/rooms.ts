@@ -10,7 +10,7 @@ export default async function handler(req: any, res: any) {
     const { name } = req.body || {};
     const { room, playerId } = createRoom(name);
     await insertRoomRow(room);
-    res.status(200).json({ playerId, room: publicRoom(room) });
+    res.status(200).json({ playerId, room: publicRoom(room, "Red") });
   } catch (e: any) {
     res.status(e.status || 500).json({ error: e.message || "Internal error" });
   }
