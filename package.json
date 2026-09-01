@@ -5,20 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "server": "tsx watch server/index.ts",
-    "dev:all": "concurrently -n web,server -c blue,magenta \"npm:dev\" \"npm:server\"",
+    "vercel:dev": "vercel dev",
     "build": "tsc && vite build",
-    "start": "tsx server/index.ts",
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@types/ws": "^8.18.1",
-    "concurrently": "^10.0.5",
+    "@types/node": "^26.4.0",
     "typescript": "~6.0.2",
     "vite": "^8.2.2"
   },
   "dependencies": {
-    "tsx": "^4.23.13",
-    "ws": "^8.21.3"
+    "@neondatabase/serverless": "^1.1.0"
   }
 }

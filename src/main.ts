@@ -34,84 +34,138 @@ interface RoomState {
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
-const WS_URL = import.meta.env.DEV
-  ? `ws://${location.hostname}:8787`
-  : `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}`;
-let socket: WebSocket | null = null;
 let myPlayerId: string | null = null;
 let room: RoomState | null = null;
 let errorMsg = "";
 let playerName = localStorage.getItem("gtc-name") || "";
+let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-function connect(): Promise<WebSocket> {
-  return new Promise((resolve) => {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      resolve(socket);
-      return;
-    }
-    const ws = new WebSocket(WS_URL);
-    ws.addEventListener("open", () => resolve(ws));
-    ws.addEventListener("message", (event) => {
-      const msg = JSON.parse(event.data);
-      if (msg.type === "joined") {
-        myPlayerId = msg.playerId;
-        room = msg.room;
-        errorMsg = "";
-        render();
-      } else if (msg.type === "room_update") {
-        room = msg.room;
-        render();
-      } else if (msg.type === "error") {
-        errorMsg = msg.message;
-        render();
-      }
-    });
-    ws.addEventListener("close", () => {
-      errorMsg = "Disconnected from server.";
-      render();
-    });
-    socket = ws;
+async function api(path: string, method: string, body?: unknown) {
+  const res = await fetch(`/api${path}`, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
   });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Request failed");
+  return data;
 }
 
-function send(data: unknown) {
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify(data));
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
   }
+}
+
+function startPolling(code: string) {
+  stopPolling();
+  pollTimer = setInterval(async () => {
+    try {
+      const data = await api(`/rooms/${code}`, "GET");
+      room = data.room;
+      render();
+    } catch {
+      stopPolling();
+      room = null;
+      myPlayerId = null;
+      errorMsg = "Room no longer available.";
+      render();
+    }
+  }, 1500);
 }
 
 async function createRoom() {
   if (!playerName.trim()) return;
   localStorage.setItem("gtc-name", playerName);
-  await connect();
-  send({ type: "create_room", name: playerName });
+  try {
+    const data = await api("/rooms", "POST", { name: playerName });
+    myPlayerId = data.playerId;
+    room = data.room;
+    errorMsg = "";
+    startPolling(room!.code);
+    render();
+  } catch (e: any) {
+    errorMsg = e.message;
+    render();
+  }
 }
 
 async function joinRoom(code: string) {
-  if (!playerName.trim() || !code.trim()) return;
+  const trimmed = code.trim().toUpperCase();
+  if (!playerName.trim() || !trimmed) return;
   localStorage.setItem("gtc-name", playerName);
-  await connect();
-  send({ type: "join_room", code: code.trim().toUpperCase(), name: playerName });
+  try {
+    const data = await api(`/rooms/${trimmed}/join`, "POST", { name: playerName });
+    myPlayerId = data.playerId;
+    room = data.room;
+    errorMsg = "";
+    startPolling(room!.code);
+    render();
+  } catch (e: any) {
+    errorMsg = e.message;
+    render();
+  }
 }
 
-function switchTeam(team: Team) {
-  send({ type: "switch_team", team });
+async function switchTeam(team: Team) {
+  if (!room || !myPlayerId) return;
+  try {
+    const data = await api(`/rooms/${room.code}/team`, "POST", { playerId: myPlayerId, team });
+    room = data.room;
+    render();
+  } catch (e: any) {
+    errorMsg = e.message;
+    render();
+  }
 }
 
-function startGame() {
-  send({ type: "start_game" });
+async function startGame() {
+  if (!room || !myPlayerId) return;
+  try {
+    const data = await api(`/rooms/${room.code}/start`, "POST", { playerId: myPlayerId });
+    room = data.room;
+    errorMsg = "";
+    render();
+  } catch (e: any) {
+    errorMsg = e.message;
+    render();
+  }
 }
 
-function askQuestion(key: AttrKey) {
-  send({ type: "ask_question", key });
+async function askQuestion(key: AttrKey) {
+  if (!room || !myPlayerId) return;
+  try {
+    const data = await api(`/rooms/${room.code}/question`, "POST", { playerId: myPlayerId, key });
+    room = data.room;
+    render();
+  } catch (e: any) {
+    errorMsg = e.message;
+    render();
+  }
 }
 
-function makeGuess(characterId: string) {
-  send({ type: "guess", characterId });
+async function makeGuess(characterId: string) {
+  if (!room || !myPlayerId) return;
+  try {
+    const data = await api(`/rooms/${room.code}/guess`, "POST", { playerId: myPlayerId, characterId });
+    room = data.room;
+    render();
+  } catch (e: any) {
+    errorMsg = e.message;
+    render();
+  }
 }
 
-function leaveRoom() {
-  send({ type: "leave_room" });
+async function leaveRoom() {
+  if (room && myPlayerId) {
+    try {
+      await api(`/rooms/${room.code}/leave`, "POST", { playerId: myPlayerId });
+    } catch {
+      // room may already be gone; leaving locally regardless
+    }
+  }
+  stopPolling();
   room = null;
   myPlayerId = null;
   render();
