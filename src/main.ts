@@ -955,6 +955,8 @@ function initSoundToggle() {
 
 const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined) || "";
 
+let googleSignInInitialized = false;
+
 function initGoogleSignInButton(container: HTMLElement, attempt = 0) {
   if (!GOOGLE_CLIENT_ID) {
     container.innerHTML = `<span class="auth-unconfigured" title="Google sign-in is not configured yet">🔒 Sign-in unavailable</span>`;
@@ -965,10 +967,13 @@ function initGoogleSignInButton(container: HTMLElement, attempt = 0) {
     setTimeout(() => initGoogleSignInButton(container, attempt + 1), 250);
     return;
   }
-  window.google.accounts.id.initialize({
-    client_id: GOOGLE_CLIENT_ID,
-    callback: (resp) => handleGoogleCredential(resp.credential),
-  });
+  if (!googleSignInInitialized) {
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: (resp) => handleGoogleCredential(resp.credential),
+    });
+    googleSignInInitialized = true;
+  }
   window.google.accounts.id.renderButton(container, { theme: "filled_black", size: "medium", shape: "pill" });
 }
 
