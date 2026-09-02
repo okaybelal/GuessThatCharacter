@@ -1,3 +1,6 @@
+import clickUrl from "./assets/sounds/click.mp3";
+import loseUrl from "./assets/sounds/lose.wav";
+
 let audioCtx: AudioContext | null = null;
 let soundEnabled = localStorage.getItem("gtc-sound") !== "off";
 
@@ -17,6 +20,14 @@ export function setSoundEnabled(enabled: boolean) {
 }
 
 export type SoundType = "click" | "yes" | "no" | "pass" | "win" | "lose";
+
+function playFile(url: string, volume = 1) {
+  const audio = new Audio(url);
+  audio.volume = volume;
+  audio.play().catch(() => {
+    // playback blocked (e.g. no user gesture yet) — fail silently
+  });
+}
 
 function tone(freq: number, duration: number, startOffset: number, type: OscillatorType, gainPeak: number) {
   const ctx = getCtx();
@@ -39,7 +50,7 @@ export function playSound(type: SoundType) {
   try {
     switch (type) {
       case "click":
-        tone(600, 0.06, 0, "square", 0.12);
+        playFile(clickUrl, 0.5);
         break;
       case "yes":
         tone(880, 0.15, 0, "sine", 0.18);
@@ -58,9 +69,7 @@ export function playSound(type: SoundType) {
         tone(783.99, 0.25, 0.24, "sine", 0.22);
         break;
       case "lose":
-        tone(392, 0.2, 0, "sine", 0.18);
-        tone(311.13, 0.25, 0.15, "sine", 0.18);
-        tone(261.63, 0.35, 0.3, "sine", 0.18);
+        playFile(loseUrl, 0.6);
         break;
     }
   } catch {
