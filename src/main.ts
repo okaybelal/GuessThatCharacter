@@ -1,5 +1,5 @@
 import "./style.css";
-import { characters, categories, buildQuestionText, type Character } from "./characters";
+import { packs, getPack, buildQuestionText, type Character } from "./characters";
 import { avatarSVG } from "./avatar";
 import { playSound, isSoundEnabled, setSoundEnabled } from "./sound";
 
@@ -25,6 +25,8 @@ interface RoomState {
   code: string;
   status: "lobby" | "picking" | "playing" | "finished";
   players: PublicPlayer[];
+  hostId: string;
+  pack: string;
   turnTeam: Team;
   askedThisTurn: boolean;
   log: LogEntry[];
@@ -147,6 +149,19 @@ async function switchTeam(team: Team) {
   try {
     const data = await roomAction(room.code, { action: "team", playerId: myPlayerId, token: myToken, team });
     setRoom(data.room);
+    render();
+  } catch (e: any) {
+    errorMsg = e.message;
+    render();
+  }
+}
+
+async function choosePack(packKey: string) {
+  if (!room || !myPlayerId) return;
+  try {
+    const data = await roomAction(room.code, { action: "pack", playerId: myPlayerId, token: myToken, packKey });
+    setRoom(data.room);
+    playSound("click");
     render();
   } catch (e: any) {
     errorMsg = e.message;
@@ -294,6 +309,10 @@ function myTeam(): Team | null {
   return teamOf(room);
 }
 
+function currentPack() {
+  return getPack(room?.pack);
+}
+
 function render() {
   if (!room) {
     document.body.removeAttribute("data-turn");
@@ -366,6 +385,8 @@ function renderWaitingRoom() {
   const teamBlue = r.players.filter((p) => p.team === "Blue");
   const ready = teamRed.length >= 1 && teamBlue.length >= 1;
   const my = myTeam();
+  const isHost = myPlayerId === r.hostId;
+  const activePack = getPack(r.pack);
 
   app.innerHTML = `
     <div class="game lobby">
@@ -380,6 +401,21 @@ function renderWaitingRoom() {
         </p>
         <p class="hint">Share this code with your friends so they can join. Anyone can switch teams before the game starts.</p>
         <button id="copy-link-btn" class="share-link-btn">🔗 Copy Invite Link</button>
+
+        <div class="pack-picker">
+          <h2>Character Pack${isHost ? "" : ` — chosen by host`}</h2>
+          <div class="pack-grid">
+            ${packs
+              .map(
+                (p) => `
+              <button class="pack-btn ${p.key === activePack.key ? "selected" : ""}" data-pack="${p.key}" ${isHost ? "" : "disabled"}>
+                <span class="pack-icon">${p.icon}</span>
+                <span class="pack-label">${p.label}</span>
+              </button>`
+              )
+              .join("")}
+          </div>
+        </div>
 
         <div class="teams-preview">
           <div class="team-col team-red">
@@ -412,6 +448,11 @@ function renderWaitingRoom() {
   document.querySelectorAll<HTMLButtonElement>(".switch-btn").forEach((btn) => {
     btn.addEventListener("click", () => switchTeam(btn.dataset.team as Team));
   });
+  if (isHost) {
+    document.querySelectorAll<HTMLButtonElement>(".pack-btn").forEach((btn) => {
+      btn.addEventListener("click", () => choosePack(btn.dataset.pack!));
+    });
+  }
 }
 
 function renderPicking() {
@@ -435,8 +476,8 @@ function renderPicking() {
       <section class="board">
         <h2>Choose Your Team's Character ${team ? `(Team ${team})` : ""}</h2>
         <div class="grid">
-          ${characters
-            .map((c) => {
+          ${currentPack()
+            .characters.map((c) => {
               const selected = r.mySecret?.id === c.id;
               return `
               <button class="card ${selected ? "picked" : ""}" data-id="${c.id}">
@@ -461,7 +502,7 @@ function renderPicking() {
 }
 
 function answerBadge(categoryKey: string | undefined, result: string): string {
-  const cat = categories.find((c) => c.key === categoryKey);
+  const cat = currentPack().categories.find((c) => c.key === categoryKey);
   const icon = cat?.icon ?? "❓";
   const isYes = result === "Yes";
   return `<span class="answer-badge ${isYes ? "answer-yes" : "answer-no"}">${icon} ${isYes ? "✅" : "❌"}</span>`;
@@ -469,6 +510,7 @@ function answerBadge(categoryKey: string | undefined, result: string): string {
 
 function renderGame() {
   const r = room!;
+  const pack = currentPack();
   const team = myTeam();
   const isMyTurn = team === r.turnTeam;
   const finished = r.status === "finished";
@@ -476,7 +518,7 @@ function renderGame() {
 
   const activeEliminated = r.turnTeam === "Blue" ? r.blueEliminated : r.redEliminated;
   const activeCrossed = r.turnTeam === "Blue" ? r.blueCrossed : r.redCrossed;
-  const remaining = characters.filter((c) => !activeEliminated.includes(c.id) && !activeCrossed.includes(c.id));
+  const remaining = pack.characters.filter((c) => !activeEliminated.includes(c.id) && !activeCrossed.includes(c.id));
   const isLastCard = remaining.length === 1;
   const isOverCrossed = remaining.length === 0;
   const canAct = isLastCard ? isMyTurn && !finished : isMyTurn && !finished && r.askedThisTurn && !isOverCrossed;
@@ -499,7 +541,7 @@ function renderGame() {
         <h2>Ask a Question ${team ? `(Team ${team})` : ""}</h2>
         ${isMyTurn && !finished && r.askedThisTurn ? `<p class="hint">You've asked your question for this turn — pass or lock in a guess.</p>` : ""}
         <div class="category-grid">
-          ${categories
+          ${pack.categories
             .map(
               (cat) => `
             <button class="cat-btn" data-key="${cat.key}" ${isMyTurn && !finished && !r.askedThisTurn ? "" : "disabled"}>
@@ -517,13 +559,13 @@ function renderGame() {
             .map((entry) => {
               const name = escapeHtml(entry.playerName);
               if (entry.kind === "question") {
-                const qText = buildQuestionText(entry.categoryKey!, entry.value!);
+                const qText = buildQuestionText(entry.categoryKey!, entry.value!, pack.categories);
                 return `<div class="log-entry">Team ${entry.team} · ${name}: "${qText}" ${answerBadge(entry.categoryKey, entry.result)}</div>`;
               }
               if (entry.kind === "pass") {
                 return `<div class="log-entry">Team ${entry.team} · ${name} passed the turn</div>`;
               }
-              const c = characters.find((ch) => ch.id === entry.characterId);
+              const c = pack.characters.find((ch) => ch.id === entry.characterId);
               return `<div class="log-entry">Team ${entry.team} · ${name} guessed <strong>${c?.name}</strong> → <strong>${entry.result}</strong></div>`;
             })
             .join("")}
@@ -534,7 +576,7 @@ function renderGame() {
         <h2>${finished ? "Characters" : `Team ${r.turnTeam}'s Board${isMyTurn ? " (Your Turn)" : ""}`}</h2>
         ${!finished ? `<p class="hint">Click a character to cross it off. Crossing off a card the game hasn't ruled out yet is flagged in red — your risk. Once you're down to one, lock in your guess below.</p>` : ""}
         <div class="grid">
-          ${characters
+          ${pack.characters
             .map((c) => {
               const isOut = activeEliminated.includes(c.id);
               const crossed = activeCrossed.includes(c.id);
@@ -612,7 +654,7 @@ function renderGame() {
 }
 
 function renderCategoryModal(categoryKey: string) {
-  const cat = categories.find((c) => c.key === categoryKey);
+  const cat = currentPack().categories.find((c) => c.key === categoryKey);
   if (!cat) return "";
   return `
     <div class="modal-backdrop" id="category-modal-backdrop">
