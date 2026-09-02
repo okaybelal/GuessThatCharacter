@@ -1,5 +1,6 @@
 import clickUrl from "./assets/sounds/click.mp3";
 import loseUrl from "./assets/sounds/lose.wav";
+import winUrl from "./assets/sounds/win.mp3";
 
 let audioCtx: AudioContext | null = null;
 let soundEnabled = localStorage.getItem("gtc-sound") !== "off";
@@ -64,9 +65,7 @@ export function playSound(type: SoundType) {
         tone(330, 0.15, 0.08, "triangle", 0.1);
         break;
       case "win":
-        tone(523.25, 0.15, 0, "sine", 0.2);
-        tone(659.25, 0.15, 0.12, "sine", 0.2);
-        tone(783.99, 0.25, 0.24, "sine", 0.22);
+        playFile(winUrl, 0.6);
         break;
       case "lose":
         playFile(loseUrl, 0.6);
