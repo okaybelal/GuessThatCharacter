@@ -315,10 +315,212 @@ const youtuberCharacters: Character[] = [
   { id: "anna-akana", name: "Anna Akana", source: "Anna Akana", emoji: "🎭", color: "#e17055", gender: "female", niche: "comedy", subscriberTier: "mid", groupBased: false, region: "north-america", crossoverFame: true },
 ];
 
+const actorCategories: CategoryDef[] = [
+  {
+    key: "gender",
+    label: "Gender",
+    icon: "🚻",
+    question: "Are they {value}?",
+    values: [
+      { value: "male", label: "Male", icon: "👨" },
+      { value: "female", label: "Female", icon: "👩" },
+    ],
+  },
+  {
+    key: "genre",
+    label: "Primary Genre",
+    icon: "🎭",
+    question: "Are they mainly known for {value} roles?",
+    values: [
+      { value: "action", label: "Action", icon: "💥" },
+      { value: "comedy", label: "Comedy", icon: "😂" },
+      { value: "drama", label: "Drama", icon: "🎬" },
+    ],
+  },
+  {
+    key: "awardWinner",
+    label: "Award Winner",
+    icon: "🏆",
+    question: "Have they {value}?",
+    values: [
+      { value: "true", label: "Won an Oscar", icon: "🏆" },
+      { value: "false", label: "Not Won an Oscar", icon: "🚫" },
+    ],
+  },
+  {
+    key: "franchiseRole",
+    label: "Blockbuster Franchise",
+    icon: "🚀",
+    question: "Have they {value}?",
+    values: [
+      { value: "true", label: "Played a Major Franchise Role", icon: "🚀" },
+      { value: "false", label: "No Major Franchise Role", icon: "🚫" },
+    ],
+  },
+  {
+    key: "region",
+    label: "Region",
+    icon: "🌍",
+    question: "Are they from {value}?",
+    values: [
+      { value: "north-america", label: "North America", icon: "🌎" },
+      { value: "europe", label: "Europe", icon: "🌍" },
+      { value: "asia", label: "Asia", icon: "🌏" },
+      { value: "other", label: "Elsewhere", icon: "🗺️" },
+    ],
+  },
+  {
+    key: "breakoutEra",
+    label: "Breakout Era",
+    icon: "📅",
+    question: "Did they break out {value}?",
+    values: [
+      { value: "veteran", label: "Before 2010", icon: "📼" },
+      { value: "newer", label: "2010 or Later", icon: "🆕" },
+    ],
+  },
+];
+
+const actorCharacters: Character[] = [
+  { id: "tom-cruise", name: "Tom Cruise", source: "Mission: Impossible", emoji: "🛩️", color: "#34495e", gender: "male", genre: "action", awardWinner: false, franchiseRole: true, region: "north-america", breakoutEra: "veteran" },
+  { id: "dwayne-johnson", name: "Dwayne Johnson", source: "Jumanji / Fast & Furious", emoji: "💪", color: "#2c3e50", gender: "male", genre: "action", awardWinner: false, franchiseRole: true, region: "north-america", breakoutEra: "newer" },
+  { id: "leonardo-dicaprio", name: "Leonardo DiCaprio", source: "Titanic", emoji: "🚢", color: "#2980b9", gender: "male", genre: "drama", awardWinner: true, franchiseRole: false, region: "north-america", breakoutEra: "veteran" },
+  { id: "robert-downey-jr", name: "Robert Downey Jr.", source: "Iron Man (MCU)", emoji: "🦾", color: "#c0392b", gender: "male", genre: "action", awardWinner: true, franchiseRole: true, region: "north-america", breakoutEra: "veteran" },
+  { id: "chris-hemsworth", name: "Chris Hemsworth", source: "Thor (MCU)", emoji: "🔨", color: "#e74c3c", gender: "male", genre: "action", awardWinner: false, franchiseRole: true, region: "other", breakoutEra: "newer" },
+  { id: "chris-evans", name: "Chris Evans", source: "Captain America (MCU)", emoji: "🛡️", color: "#1f3a93", gender: "male", genre: "action", awardWinner: false, franchiseRole: true, region: "north-america", breakoutEra: "newer" },
+  { id: "tom-holland", name: "Tom Holland", source: "Spider-Man (MCU)", emoji: "🕷️", color: "#a11d2e", gender: "male", genre: "action", awardWinner: false, franchiseRole: true, region: "europe", breakoutEra: "newer" },
+  { id: "denzel-washington", name: "Denzel Washington", source: "Training Day", emoji: "🎬", color: "#6d4c41", gender: "male", genre: "drama", awardWinner: true, franchiseRole: false, region: "north-america", breakoutEra: "veteran" },
+  { id: "will-smith", name: "Will Smith", source: "Men in Black", emoji: "🕶️", color: "#34495e", gender: "male", genre: "action", awardWinner: true, franchiseRole: true, region: "north-america", breakoutEra: "veteran" },
+  { id: "ryan-reynolds", name: "Ryan Reynolds", source: "Deadpool", emoji: "🗡️", color: "#a11d2e", gender: "male", genre: "comedy", awardWinner: false, franchiseRole: true, region: "north-america", breakoutEra: "newer" },
+  { id: "timothee-chalamet", name: "Timothée Chalamet", source: "Dune", emoji: "🏜️", color: "#d4a76a", gender: "male", genre: "drama", awardWinner: false, franchiseRole: true, region: "north-america", breakoutEra: "newer" },
+  { id: "keanu-reeves", name: "Keanu Reeves", source: "John Wick", emoji: "🕴️", color: "#2c2c2c", gender: "male", genre: "action", awardWinner: false, franchiseRole: true, region: "north-america", breakoutEra: "veteran" },
+  { id: "hugh-jackman", name: "Hugh Jackman", source: "Wolverine (X-Men)", emoji: "🦾", color: "#7f8c8d", gender: "male", genre: "action", awardWinner: false, franchiseRole: true, region: "other", breakoutEra: "veteran" },
+  { id: "idris-elba", name: "Idris Elba", source: "Luther", emoji: "🕵️", color: "#2c3e50", gender: "male", genre: "action", awardWinner: false, franchiseRole: true, region: "europe", breakoutEra: "newer" },
+  { id: "jason-statham", name: "Jason Statham", source: "Fast & Furious", emoji: "🏎️", color: "#34495e", gender: "male", genre: "action", awardWinner: false, franchiseRole: true, region: "europe", breakoutEra: "veteran" },
+  { id: "meryl-streep", name: "Meryl Streep", source: "The Devil Wears Prada", emoji: "👑", color: "#8e44ad", gender: "female", genre: "drama", awardWinner: true, franchiseRole: false, region: "north-america", breakoutEra: "veteran" },
+  { id: "scarlett-johansson", name: "Scarlett Johansson", source: "Black Widow (MCU)", emoji: "🕸️", color: "#922b21", gender: "female", genre: "action", awardWinner: false, franchiseRole: true, region: "north-america", breakoutEra: "veteran" },
+  { id: "jennifer-lawrence", name: "Jennifer Lawrence", source: "The Hunger Games", emoji: "🏹", color: "#5a5a3c", gender: "female", genre: "drama", awardWinner: true, franchiseRole: true, region: "north-america", breakoutEra: "newer" },
+  { id: "zendaya", name: "Zendaya", source: "Dune / Spider-Man", emoji: "✨", color: "#6c3483", gender: "female", genre: "drama", awardWinner: false, franchiseRole: true, region: "north-america", breakoutEra: "newer" },
+  { id: "margot-robbie", name: "Margot Robbie", source: "Barbie", emoji: "💗", color: "#ff69b4", gender: "female", genre: "comedy", awardWinner: false, franchiseRole: true, region: "other", breakoutEra: "newer" },
+  { id: "emma-stone", name: "Emma Stone", source: "La La Land", emoji: "🌟", color: "#f39c12", gender: "female", genre: "comedy", awardWinner: true, franchiseRole: false, region: "north-america", breakoutEra: "newer" },
+  { id: "angelina-jolie", name: "Angelina Jolie", source: "Tomb Raider", emoji: "🏺", color: "#6d4c41", gender: "female", genre: "action", awardWinner: true, franchiseRole: true, region: "north-america", breakoutEra: "veteran" },
+  { id: "charlize-theron", name: "Charlize Theron", source: "Mad Max: Fury Road", emoji: "🏜️", color: "#b9770e", gender: "female", genre: "action", awardWinner: true, franchiseRole: true, region: "other", breakoutEra: "veteran" },
+  { id: "gal-gadot", name: "Gal Gadot", source: "Wonder Woman", emoji: "🛡️", color: "#c0392b", gender: "female", genre: "action", awardWinner: false, franchiseRole: true, region: "other", breakoutEra: "newer" },
+  { id: "anne-hathaway", name: "Anne Hathaway", source: "The Princess Diaries", emoji: "👗", color: "#8e44ad", gender: "female", genre: "drama", awardWinner: true, franchiseRole: false, region: "north-america", breakoutEra: "veteran" },
+  { id: "sandra-bullock", name: "Sandra Bullock", source: "Gravity", emoji: "🚀", color: "#2980b9", gender: "female", genre: "comedy", awardWinner: true, franchiseRole: false, region: "north-america", breakoutEra: "veteran" },
+  { id: "emma-watson", name: "Emma Watson", source: "Harry Potter", emoji: "📚", color: "#2e6b4f", gender: "female", genre: "drama", awardWinner: false, franchiseRole: true, region: "europe", breakoutEra: "veteran" },
+  { id: "priyanka-chopra", name: "Priyanka Chopra", source: "Citadel", emoji: "🎬", color: "#b03a2e", gender: "female", genre: "drama", awardWinner: false, franchiseRole: false, region: "asia", breakoutEra: "newer" },
+  { id: "florence-pugh", name: "Florence Pugh", source: "Black Widow (MCU)", emoji: "🌸", color: "#cd6155", gender: "female", genre: "drama", awardWinner: false, franchiseRole: true, region: "europe", breakoutEra: "newer" },
+  { id: "millie-bobby-brown", name: "Millie Bobby Brown", source: "Godzilla", emoji: "🦖", color: "#7f4f24", gender: "female", genre: "drama", awardWinner: false, franchiseRole: true, region: "europe", breakoutEra: "newer" },
+];
+
+const musicianCategories: CategoryDef[] = [
+  {
+    key: "gender",
+    label: "Gender",
+    icon: "🚻",
+    question: "Are they {value}?",
+    values: [
+      { value: "male", label: "Male", icon: "👨" },
+      { value: "female", label: "Female", icon: "👩" },
+    ],
+  },
+  {
+    key: "genre",
+    label: "Genre",
+    icon: "🎵",
+    question: "Do they mainly make {value} music?",
+    values: [
+      { value: "pop", label: "Pop", icon: "🎤" },
+      { value: "hip-hop", label: "Hip-Hop / Rap", icon: "🎧" },
+      { value: "rock", label: "Rock", icon: "🎸" },
+      { value: "rnb", label: "R&B", icon: "🎹" },
+      { value: "country", label: "Country", icon: "🤠" },
+    ],
+  },
+  {
+    key: "awardWinner",
+    label: "Grammy Winner",
+    icon: "🏆",
+    question: "Have they {value}?",
+    values: [
+      { value: "true", label: "Won a Grammy", icon: "🏆" },
+      { value: "false", label: "Not Won a Grammy", icon: "🚫" },
+    ],
+  },
+  {
+    key: "groupBased",
+    label: "Solo or Group",
+    icon: "👥",
+    question: "Are they a {value}?",
+    values: [
+      { value: "true", label: "Group / Band", icon: "👥" },
+      { value: "false", label: "Solo Artist", icon: "🧑" },
+    ],
+  },
+  {
+    key: "region",
+    label: "Region",
+    icon: "🌍",
+    question: "Are they from {value}?",
+    values: [
+      { value: "north-america", label: "North America", icon: "🌎" },
+      { value: "europe", label: "Europe", icon: "🌍" },
+      { value: "asia", label: "Asia", icon: "🌏" },
+      { value: "other", label: "Elsewhere", icon: "🗺️" },
+    ],
+  },
+  {
+    key: "breakoutEra",
+    label: "Breakout Era",
+    icon: "📅",
+    question: "Did they break out {value}?",
+    values: [
+      { value: "veteran", label: "Before 2010", icon: "📼" },
+      { value: "newer", label: "2010 or Later", icon: "🆕" },
+    ],
+  },
+];
+
+const musicianCharacters: Character[] = [
+  { id: "drake", name: "Drake", source: "Hip-Hop", emoji: "🦉", color: "#d4af37", gender: "male", genre: "hip-hop", awardWinner: true, groupBased: false, region: "north-america", breakoutEra: "newer" },
+  { id: "ed-sheeran", name: "Ed Sheeran", source: "Pop / Folk", emoji: "🎸", color: "#e67e22", gender: "male", genre: "pop", awardWinner: true, groupBased: false, region: "europe", breakoutEra: "newer" },
+  { id: "bruno-mars", name: "Bruno Mars", source: "Pop / Funk", emoji: "🎤", color: "#f1c40f", gender: "male", genre: "pop", awardWinner: true, groupBased: false, region: "north-america", breakoutEra: "newer" },
+  { id: "justin-bieber", name: "Justin Bieber", source: "Pop", emoji: "🎵", color: "#3498db", gender: "male", genre: "pop", awardWinner: true, groupBased: false, region: "north-america", breakoutEra: "newer" },
+  { id: "the-weeknd", name: "The Weeknd", source: "R&B", emoji: "🌙", color: "#c0392b", gender: "male", genre: "rnb", awardWinner: true, groupBased: false, region: "north-america", breakoutEra: "newer" },
+  { id: "kendrick-lamar", name: "Kendrick Lamar", source: "Hip-Hop", emoji: "🎙️", color: "#27ae60", gender: "male", genre: "hip-hop", awardWinner: true, groupBased: false, region: "north-america", breakoutEra: "newer" },
+  { id: "eminem", name: "Eminem", source: "Hip-Hop", emoji: "🎧", color: "#7f8c8d", gender: "male", genre: "hip-hop", awardWinner: true, groupBased: false, region: "north-america", breakoutEra: "veteran" },
+  { id: "jay-z", name: "Jay-Z", source: "Hip-Hop", emoji: "👑", color: "#1a1a1a", gender: "male", genre: "hip-hop", awardWinner: true, groupBased: false, region: "north-america", breakoutEra: "veteran" },
+  { id: "bruce-springsteen", name: "Bruce Springsteen", source: "Rock", emoji: "🎸", color: "#1f3a93", gender: "male", genre: "rock", awardWinner: true, groupBased: false, region: "north-america", breakoutEra: "veteran" },
+  { id: "elton-john", name: "Elton John", source: "Pop / Rock", emoji: "🎹", color: "#f39c12", gender: "male", genre: "rock", awardWinner: true, groupBased: false, region: "europe", breakoutEra: "veteran" },
+  { id: "harry-styles", name: "Harry Styles", source: "Pop", emoji: "🎀", color: "#e91e63", gender: "male", genre: "pop", awardWinner: true, groupBased: false, region: "europe", breakoutEra: "newer" },
+  { id: "post-malone", name: "Post Malone", source: "Hip-Hop / Pop", emoji: "🎶", color: "#616a6b", gender: "male", genre: "hip-hop", awardWinner: false, groupBased: false, region: "north-america", breakoutEra: "newer" },
+  { id: "coldplay", name: "Coldplay", source: "Rock", emoji: "🌟", color: "#f1c40f", gender: "male", genre: "rock", awardWinner: true, groupBased: true, region: "europe", breakoutEra: "veteran" },
+  { id: "kanye-west", name: "Kanye West", source: "Hip-Hop", emoji: "🎤", color: "#8b4513", gender: "male", genre: "hip-hop", awardWinner: true, groupBased: false, region: "north-america", breakoutEra: "veteran" },
+  { id: "bts", name: "BTS", source: "K-Pop", emoji: "💜", color: "#8e44ad", gender: "male", genre: "pop", awardWinner: false, groupBased: true, region: "asia", breakoutEra: "newer" },
+  { id: "taylor-swift", name: "Taylor Swift", source: "Pop / Country", emoji: "🎤", color: "#e91e63", gender: "female", genre: "country", awardWinner: true, groupBased: false, region: "north-america", breakoutEra: "newer" },
+  { id: "beyonce", name: "Beyoncé", source: "R&B / Pop", emoji: "👑", color: "#f1c40f", gender: "female", genre: "rnb", awardWinner: true, groupBased: false, region: "north-america", breakoutEra: "veteran" },
+  { id: "rihanna", name: "Rihanna", source: "Pop / R&B", emoji: "💎", color: "#922b21", gender: "female", genre: "rnb", awardWinner: true, groupBased: false, region: "other", breakoutEra: "veteran" },
+  { id: "ariana-grande", name: "Ariana Grande", source: "Pop", emoji: "🎀", color: "#a569bd", gender: "female", genre: "pop", awardWinner: true, groupBased: false, region: "north-america", breakoutEra: "newer" },
+  { id: "adele", name: "Adele", source: "Pop / Soul", emoji: "🎙️", color: "#34495e", gender: "female", genre: "pop", awardWinner: true, groupBased: false, region: "europe", breakoutEra: "newer" },
+  { id: "billie-eilish", name: "Billie Eilish", source: "Pop / Alt", emoji: "🖤", color: "#1a1a1a", gender: "female", genre: "pop", awardWinner: true, groupBased: false, region: "north-america", breakoutEra: "newer" },
+  { id: "dua-lipa", name: "Dua Lipa", source: "Pop", emoji: "✨", color: "#ec407a", gender: "female", genre: "pop", awardWinner: true, groupBased: false, region: "europe", breakoutEra: "newer" },
+  { id: "katy-perry", name: "Katy Perry", source: "Pop", emoji: "🍭", color: "#ff6f91", gender: "female", genre: "pop", awardWinner: false, groupBased: false, region: "north-america", breakoutEra: "newer" },
+  { id: "lady-gaga", name: "Lady Gaga", source: "Pop", emoji: "🎭", color: "#c0392b", gender: "female", genre: "pop", awardWinner: true, groupBased: false, region: "north-america", breakoutEra: "newer" },
+  { id: "nicki-minaj", name: "Nicki Minaj", source: "Hip-Hop", emoji: "💅", color: "#ff69b4", gender: "female", genre: "hip-hop", awardWinner: false, groupBased: false, region: "other", breakoutEra: "newer" },
+  { id: "cardi-b", name: "Cardi B", source: "Hip-Hop", emoji: "💃", color: "#d63384", gender: "female", genre: "hip-hop", awardWinner: true, groupBased: false, region: "north-america", breakoutEra: "newer" },
+  { id: "shakira", name: "Shakira", source: "Pop / Latin", emoji: "🐺", color: "#e67e22", gender: "female", genre: "pop", awardWinner: true, groupBased: false, region: "other", breakoutEra: "veteran" },
+  { id: "miley-cyrus", name: "Miley Cyrus", source: "Pop", emoji: "🔨", color: "#f4d03f", gender: "female", genre: "pop", awardWinner: true, groupBased: false, region: "north-america", breakoutEra: "veteran" },
+  { id: "blackpink", name: "Blackpink", source: "K-Pop", emoji: "🖤", color: "#ff1493", gender: "female", genre: "pop", awardWinner: false, groupBased: true, region: "asia", breakoutEra: "newer" },
+  { id: "olivia-rodrigo", name: "Olivia Rodrigo", source: "Pop", emoji: "💜", color: "#9b59b6", gender: "female", genre: "pop", awardWinner: true, groupBased: false, region: "north-america", breakoutEra: "newer" },
+];
+
 export const packs: Pack[] = [
   { key: "classic", label: "Movies & TV Characters", icon: "🎬", characters: classicCharacters, categories: classicCategories },
   { key: "anime", label: "Anime Characters", icon: "🍥", characters: animeCharacters, categories: classicCategories },
   { key: "youtubers", label: "YouTubers", icon: "▶️", characters: youtuberCharacters, categories: youtuberCategories },
+  { key: "actors", label: "Movie Character Actors", icon: "🎥", characters: actorCharacters, categories: actorCategories },
+  { key: "musicians", label: "Musicians", icon: "🎵", characters: musicianCharacters, categories: musicianCategories },
 ];
 
 export const DEFAULT_PACK_KEY = "classic";
