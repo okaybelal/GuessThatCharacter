@@ -12,18 +12,42 @@ export interface Character {
   source: string;
   emoji: string;
   color: string;
-  species: Species;
-  gender: Gender;
-  alignment: Alignment;
-  powers: PowerType;
-  weapon: WeaponType;
-  format: Format;
-  age: AgeGroup;
-  costume: boolean;
-  facialHair: boolean;
+  species?: Species;
+  gender?: Gender;
+  alignment?: Alignment;
+  powers?: PowerType;
+  weapon?: WeaponType;
+  format?: Format;
+  age?: AgeGroup;
+  costume?: boolean;
+  facialHair?: boolean;
+  // packs beyond "classic"/"anime" attach their own attribute keys here
+  [key: string]: string | boolean | undefined;
 }
 
-export const characters: Character[] = [
+export interface CategoryValue {
+  value: string;
+  label: string;
+  icon: string;
+}
+
+export interface CategoryDef {
+  key: string;
+  label: string;
+  icon: string;
+  question: string; // "{value}" is replaced with the chosen value's label
+  values: CategoryValue[];
+}
+
+export interface Pack {
+  key: string;
+  label: string;
+  icon: string;
+  characters: Character[];
+  categories: CategoryDef[];
+}
+
+const classicCharacters: Character[] = [
   { id: "walter-white", name: "Walter White", source: "Breaking Bad", emoji: "🥼", color: "#2f7d4f", species: "human", gender: "male", alignment: "villain", powers: "none", weapon: "ranged", format: "live-tv", age: "adult", costume: false, facialHair: true },
   { id: "darth-vader", name: "Darth Vader", source: "Star Wars", emoji: "🖤", color: "#1a1a1a", species: "human", gender: "male", alignment: "villain", powers: "magic", weapon: "melee", format: "live-movie", age: "adult", costume: true, facialHair: false },
   { id: "draco-malfoy", name: "Draco Malfoy", source: "Harry Potter", emoji: "🐍", color: "#2e6b4f", species: "human", gender: "male", alignment: "villain", powers: "magic", weapon: "magic", format: "live-movie", age: "teen", costume: true, facialHair: false },
@@ -56,21 +80,7 @@ export const characters: Character[] = [
   { id: "spider-man", name: "Spider-Man", source: "Marvel", emoji: "🕷️", color: "#a11d2e", species: "human", gender: "male", alignment: "hero", powers: "superpowers", weapon: "none", format: "live-movie", age: "teen", costume: true, facialHair: false },
 ];
 
-export interface CategoryValue {
-  value: string;
-  label: string;
-  icon: string;
-}
-
-export interface CategoryDef {
-  key: keyof Pick<Character, "species" | "gender" | "alignment" | "powers" | "weapon" | "format" | "age" | "costume" | "facialHair">;
-  label: string;
-  icon: string;
-  question: string; // "{value}" is replaced with the chosen value's label
-  values: CategoryValue[];
-}
-
-export const categories: CategoryDef[] = [
+const classicCategories: CategoryDef[] = [
   {
     key: "species",
     label: "Species",
@@ -172,12 +182,54 @@ export const categories: CategoryDef[] = [
   },
 ];
 
+const animeCharacters: Character[] = [
+  { id: "naruto-uzumaki", name: "Naruto Uzumaki", source: "Naruto", emoji: "🍥", color: "#e8912d", species: "human", gender: "male", alignment: "hero", powers: "magic", weapon: "melee", format: "animated-tv", age: "teen", costume: true, facialHair: false },
+  { id: "sasuke-uchiha", name: "Sasuke Uchiha", source: "Naruto", emoji: "⚡", color: "#2b2b3a", species: "human", gender: "male", alignment: "hero", powers: "magic", weapon: "melee", format: "animated-tv", age: "teen", costume: true, facialHair: false },
+  { id: "itachi-uchiha", name: "Itachi Uchiha", source: "Naruto", emoji: "🐦‍⬛", color: "#34495e", species: "human", gender: "male", alignment: "hero", powers: "magic", weapon: "melee", format: "animated-tv", age: "adult", costume: true, facialHair: false },
+  { id: "goku", name: "Son Goku", source: "Dragon Ball", emoji: "🐉", color: "#ff6600", species: "magical", gender: "male", alignment: "hero", powers: "superpowers", weapon: "none", format: "animated-tv", age: "adult", costume: true, facialHair: false },
+  { id: "vegeta", name: "Vegeta", source: "Dragon Ball", emoji: "👑", color: "#1f3a93", species: "magical", gender: "male", alignment: "hero", powers: "superpowers", weapon: "none", format: "animated-tv", age: "adult", costume: true, facialHair: false },
+  { id: "piccolo", name: "Piccolo", source: "Dragon Ball", emoji: "🟢", color: "#27ae60", species: "creature", gender: "male", alignment: "hero", powers: "superpowers", weapon: "none", format: "animated-tv", age: "adult", costume: true, facialHair: false },
+  { id: "frieza", name: "Frieza", source: "Dragon Ball", emoji: "💜", color: "#9b59b6", species: "magical", gender: "male", alignment: "villain", powers: "superpowers", weapon: "none", format: "animated-tv", age: "adult", costume: false, facialHair: false },
+  { id: "luffy", name: "Monkey D. Luffy", source: "One Piece", emoji: "🏴‍☠️", color: "#d63031", species: "human", gender: "male", alignment: "hero", powers: "superpowers", weapon: "none", format: "animated-tv", age: "teen", costume: true, facialHair: false },
+  { id: "zoro", name: "Roronoa Zoro", source: "One Piece", emoji: "⚔️", color: "#2ecc71", species: "human", gender: "male", alignment: "hero", powers: "none", weapon: "melee", format: "animated-tv", age: "adult", costume: true, facialHair: false },
+  { id: "nami", name: "Nami", source: "One Piece", emoji: "🍊", color: "#f39c12", species: "human", gender: "female", alignment: "hero", powers: "none", weapon: "melee", format: "animated-tv", age: "adult", costume: true, facialHair: false },
+  { id: "levi-ackerman", name: "Levi Ackerman", source: "Attack on Titan", emoji: "🗡️", color: "#34495e", species: "human", gender: "male", alignment: "hero", powers: "none", weapon: "melee", format: "animated-tv", age: "adult", costume: true, facialHair: false },
+  { id: "eren-yeager", name: "Eren Yeager", source: "Attack on Titan", emoji: "🦖", color: "#7f4f24", species: "human", gender: "male", alignment: "hero", powers: "superpowers", weapon: "melee", format: "animated-tv", age: "teen", costume: true, facialHair: false },
+  { id: "mikasa-ackerman", name: "Mikasa Ackerman", source: "Attack on Titan", emoji: "🧣", color: "#c0392b", species: "human", gender: "female", alignment: "hero", powers: "none", weapon: "melee", format: "animated-tv", age: "teen", costume: true, facialHair: false },
+  { id: "light-yagami", name: "Light Yagami", source: "Death Note", emoji: "📓", color: "#2c3e50", species: "human", gender: "male", alignment: "villain", powers: "none", weapon: "none", format: "animated-tv", age: "teen", costume: false, facialHair: false },
+  { id: "l-lawliet", name: "L Lawliet", source: "Death Note", emoji: "🍰", color: "#ecf0f1", species: "human", gender: "male", alignment: "hero", powers: "none", weapon: "none", format: "animated-tv", age: "adult", costume: false, facialHair: false },
+  { id: "edward-elric", name: "Edward Elric", source: "Fullmetal Alchemist", emoji: "⚗️", color: "#c0392b", species: "human", gender: "male", alignment: "hero", powers: "magic", weapon: "melee", format: "animated-tv", age: "teen", costume: true, facialHair: false },
+  { id: "alphonse-elric", name: "Alphonse Elric", source: "Fullmetal Alchemist", emoji: "🛡️", color: "#7f8c8d", species: "robot", gender: "male", alignment: "hero", powers: "magic", weapon: "none", format: "animated-tv", age: "teen", costume: true, facialHair: false },
+  { id: "saitama", name: "Saitama", source: "One Punch Man", emoji: "👊", color: "#f1c40f", species: "human", gender: "male", alignment: "hero", powers: "superpowers", weapon: "none", format: "animated-tv", age: "adult", costume: true, facialHair: false },
+  { id: "tanjiro-kamado", name: "Tanjiro Kamado", source: "Demon Slayer", emoji: "🌊", color: "#2ecc71", species: "human", gender: "male", alignment: "hero", powers: "magic", weapon: "melee", format: "animated-tv", age: "teen", costume: true, facialHair: false },
+  { id: "nezuko-kamado", name: "Nezuko Kamado", source: "Demon Slayer", emoji: "🎋", color: "#e67e22", species: "magical", gender: "female", alignment: "hero", powers: "superpowers", weapon: "none", format: "animated-tv", age: "teen", costume: true, facialHair: false },
+  { id: "gojo-satoru", name: "Gojo Satoru", source: "Jujutsu Kaisen", emoji: "🔵", color: "#3498db", species: "human", gender: "male", alignment: "hero", powers: "magic", weapon: "none", format: "animated-tv", age: "adult", costume: true, facialHair: false },
+  { id: "sailor-moon", name: "Sailor Moon", source: "Sailor Moon", emoji: "🌙", color: "#f8c9d4", species: "human", gender: "female", alignment: "hero", powers: "magic", weapon: "none", format: "animated-tv", age: "teen", costume: true, facialHair: false },
+  { id: "all-might", name: "All Might", source: "My Hero Academia", emoji: "💪", color: "#f1c40f", species: "human", gender: "male", alignment: "hero", powers: "superpowers", weapon: "none", format: "animated-tv", age: "adult", costume: true, facialHair: false },
+  { id: "deku", name: "Izuku Midoriya", source: "My Hero Academia", emoji: "🍀", color: "#27ae60", species: "human", gender: "male", alignment: "hero", powers: "superpowers", weapon: "none", format: "animated-tv", age: "teen", costume: true, facialHair: false },
+  { id: "spike-spiegel", name: "Spike Spiegel", source: "Cowboy Bebop", emoji: "🚬", color: "#2c3e50", species: "human", gender: "male", alignment: "hero", powers: "none", weapon: "ranged", format: "animated-tv", age: "adult", costume: false, facialHair: false },
+  { id: "rem", name: "Rem", source: "Re:Zero", emoji: "🔵", color: "#3498db", species: "magical", gender: "female", alignment: "hero", powers: "magic", weapon: "melee", format: "animated-tv", age: "teen", costume: true, facialHair: false },
+  { id: "ichigo-kurosaki", name: "Ichigo Kurosaki", source: "Bleach", emoji: "⚔️", color: "#e67e22", species: "human", gender: "male", alignment: "hero", powers: "superpowers", weapon: "melee", format: "animated-tv", age: "teen", costume: true, facialHair: false },
+  { id: "rukia-kuchiki", name: "Rukia Kuchiki", source: "Bleach", emoji: "❄️", color: "#2c3e50", species: "magical", gender: "female", alignment: "hero", powers: "superpowers", weapon: "melee", format: "animated-tv", age: "adult", costume: true, facialHair: false },
+];
+
+export const packs: Pack[] = [
+  { key: "classic", label: "Movies & TV Characters", icon: "🎬", characters: classicCharacters, categories: classicCategories },
+  { key: "anime", label: "Anime Characters", icon: "🍥", characters: animeCharacters, categories: classicCategories },
+];
+
+export const DEFAULT_PACK_KEY = "classic";
+
+export function getPack(key?: string): Pack {
+  return packs.find((p) => p.key === key) ?? packs[0];
+}
+
 export function categoryValueMatches(character: Character, categoryKey: string, value: string): boolean {
   return String((character as any)[categoryKey]) === value;
 }
 
-export function buildQuestionText(categoryKey: string, value: string): string {
-  const category = categories.find((c) => c.key === categoryKey);
+export function buildQuestionText(categoryKey: string, value: string, categoryDefs: CategoryDef[]): string {
+  const category = categoryDefs.find((c) => c.key === categoryKey);
   if (!category) return "Unknown question";
   const valueDef = category.values.find((v) => v.value === value);
   return category.question.replace("{value}", valueDef?.label ?? value);

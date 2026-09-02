@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { characters, categories, categoryValueMatches } from "../src/characters.js";
+import { getPack, DEFAULT_PACK_KEY, categoryValueMatches } from "../src/characters.js";
 
 export type Team = "Red" | "Blue";
 
@@ -24,6 +24,8 @@ export interface Room {
   code: string;
   status: "lobby" | "picking" | "playing" | "finished";
   players: Player[];
+  hostId: string;
+  pack: string;
   redSecretId?: string;
   blueSecretId?: string;
   redEliminated: string[];
@@ -62,9 +64,9 @@ function otherTeam(team: Team): Team {
   return team === "Red" ? "Blue" : "Red";
 }
 
-function charInfo(id?: string) {
+function charInfo(room: Room, id?: string) {
   if (!id) return undefined;
-  return characters.find((ch) => ch.id === id);
+  return getPack(room.pack).characters.find((ch) => ch.id === id);
 }
 
 export function genCode() {
@@ -93,6 +95,8 @@ export function createRoom(name: string): { room: Room; playerId: string; token:
     code: genCode(),
     status: "lobby",
     players: [{ id: playerId, token, name: String(name || "Player").slice(0, 20), team: "Red" }],
+    hostId: playerId,
+    pack: DEFAULT_PACK_KEY,
     redEliminated: [],
     blueEliminated: [],
     redCrossed: [],
@@ -118,6 +122,13 @@ export function switchTeam(room: Room, playerId: string, token: string, team: st
   player.team = team === "Blue" ? "Blue" : "Red";
 }
 
+export function choosePack(room: Room, playerId: string, token: string, packKey: string) {
+  if (room.status !== "lobby") throw new ApiError(400, "Game already started.");
+  requirePlayer(room, playerId, token);
+  if (playerId !== room.hostId) throw new ApiError(403, "Only the host can change the character pack.");
+  room.pack = getPack(packKey).key;
+}
+
 export function startGame(room: Room, playerId: string, token: string) {
   requirePlayer(room, playerId, token);
   if (room.status !== "lobby") throw new ApiError(400, "Game already started.");
@@ -128,7 +139,8 @@ export function startGame(room: Room, playerId: string, token: string) {
 export function pickCharacter(room: Room, playerId: string, token: string, characterId: string) {
   if (room.status !== "picking") throw new ApiError(400, "Not in the picking phase.");
   const player = requirePlayer(room, playerId, token);
-  if (!characters.some((c) => c.id === characterId)) throw new ApiError(400, "Unknown character.");
+  const pack = getPack(room.pack);
+  if (!pack.characters.some((c) => c.id === characterId)) throw new ApiError(400, "Unknown character.");
 
   if (player.team === "Red") room.redSecretId = characterId;
   else room.blueSecretId = characterId;
@@ -151,17 +163,18 @@ export function askQuestion(room: Room, playerId: string, token: string, categor
   if (player.team !== room.turnTeam) throw new ApiError(403, "Not your turn.");
   if (room.askedThisTurn) throw new ApiError(400, "You can only ask one question per turn. Pass or guess.");
 
-  const category = categories.find((c) => c.key === categoryKey);
+  const pack = getPack(room.pack);
+  const category = pack.categories.find((c) => c.key === categoryKey);
   if (!category) throw new ApiError(400, "Invalid question category.");
   if (!category.values.some((v) => v.value === value)) throw new ApiError(400, "Invalid question value.");
 
   const opponent = otherTeam(player.team);
   const opponentSecretId = opponent === "Red" ? room.redSecretId : room.blueSecretId;
-  const secret = characters.find((c) => c.id === opponentSecretId)!;
+  const secret = pack.characters.find((c) => c.id === opponentSecretId)!;
   const answer = categoryValueMatches(secret, categoryKey, value);
 
   const eliminated = player.team === "Red" ? room.redEliminated : room.blueEliminated;
-  characters.forEach((c) => {
+  pack.characters.forEach((c) => {
     if (eliminated.includes(c.id)) return;
     if (categoryValueMatches(c, categoryKey, value) !== answer) eliminated.push(c.id);
   });
@@ -178,7 +191,7 @@ export function passTurn(room: Room, playerId: string, token: string) {
 
   const eliminated = player.team === "Red" ? room.redEliminated : room.blueEliminated;
   const crossed = player.team === "Red" ? room.redCrossed : room.blueCrossed;
-  const remainingCount = characters.filter((c) => !eliminated.includes(c.id) && !crossed.includes(c.id)).length;
+  const remainingCount = getPack(room.pack).characters.filter((c) => !eliminated.includes(c.id) && !crossed.includes(c.id)).length;
   if (remainingCount === 1) throw new ApiError(400, "You're down to one character — guess instead of passing.");
   if (remainingCount === 0) throw new ApiError(400, "You've crossed off every candidate. Bring one back before you can pass.");
 
@@ -191,7 +204,7 @@ export function toggleCross(room: Room, playerId: string, token: string, charact
   if (room.status !== "playing") throw new ApiError(400, "Game is not in progress.");
   const player = requirePlayer(room, playerId, token);
   if (player.team !== room.turnTeam) throw new ApiError(403, "Not your turn.");
-  if (!characters.some((c) => c.id === characterId)) throw new ApiError(400, "Unknown character.");
+  if (!getPack(room.pack).characters.some((c) => c.id === characterId)) throw new ApiError(400, "Unknown character.");
 
   const crossed = player.team === "Red" ? room.redCrossed : room.blueCrossed;
   const idx = crossed.indexOf(characterId);
@@ -203,12 +216,13 @@ export function makeGuess(room: Room, playerId: string, token: string, character
   if (room.status !== "playing") throw new ApiError(400, "Game is not in progress.");
   const player = requirePlayer(room, playerId, token);
   if (player.team !== room.turnTeam) throw new ApiError(403, "Not your turn.");
-  const guessed = characters.find((c) => c.id === characterId);
+  const pack = getPack(room.pack);
+  const guessed = pack.characters.find((c) => c.id === characterId);
   if (!guessed) throw new ApiError(400, "Unknown character.");
 
   const eliminated = player.team === "Red" ? room.redEliminated : room.blueEliminated;
   const crossed = player.team === "Red" ? room.redCrossed : room.blueCrossed;
-  const remainingCount = characters.filter((c) => !eliminated.includes(c.id) && !crossed.includes(c.id)).length;
+  const remainingCount = pack.characters.filter((c) => !eliminated.includes(c.id) && !crossed.includes(c.id)).length;
   if (remainingCount !== 1) throw new ApiError(400, "You can only guess once you've narrowed it down to one character.");
 
   const opponent = otherTeam(player.team);
@@ -241,6 +255,10 @@ export function leaveRoom(room: Room, playerId: string, token: string) {
   requirePlayer(room, playerId, token);
   room.players = room.players.filter((p) => p.id !== playerId);
 
+  if (room.hostId === playerId && room.players.length > 0) {
+    room.hostId = room.players[0].id;
+  }
+
   if (room.status === "playing" || room.status === "picking") {
     const redCount = room.players.filter((p) => p.team === "Red").length;
     const blueCount = room.players.filter((p) => p.team === "Blue").length;
@@ -260,6 +278,8 @@ export function publicRoom(room: Room, viewerTeam?: Team) {
     code: room.code,
     status: room.status,
     players: room.players.map((p) => ({ id: p.id, name: p.name, team: p.team })),
+    hostId: room.hostId,
+    pack: room.pack,
     turnTeam: room.turnTeam,
     askedThisTurn: room.askedThisTurn,
     log: room.log,
@@ -270,7 +290,7 @@ export function publicRoom(room: Room, viewerTeam?: Team) {
     blueEliminated: room.blueEliminated,
     redCrossed: room.redCrossed,
     blueCrossed: room.blueCrossed,
-    mySecret: viewerTeam ? charInfo(viewerTeam === "Red" ? room.redSecretId : room.blueSecretId) ?? null : null,
-    reveal: finished ? { red: charInfo(room.redSecretId), blue: charInfo(room.blueSecretId) } : undefined,
+    mySecret: viewerTeam ? charInfo(room, viewerTeam === "Red" ? room.redSecretId : room.blueSecretId) ?? null : null,
+    reveal: finished ? { red: charInfo(room, room.redSecretId), blue: charInfo(room, room.blueSecretId) } : undefined,
   };
 }

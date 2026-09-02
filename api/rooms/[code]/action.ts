@@ -2,6 +2,7 @@ import { withRoom } from "../../_db.js";
 import {
   joinRoom,
   switchTeam,
+  choosePack,
   startGame,
   pickCharacter,
   askQuestion,
@@ -36,6 +37,9 @@ export default async function handler(req: any, res: any) {
         }
         case "team":
           switchTeam(r, playerId, token, body.team);
+          break;
+        case "pack":
+          choosePack(r, playerId, token, body.packKey);
           break;
         case "start":
           startGame(r, playerId, token);
