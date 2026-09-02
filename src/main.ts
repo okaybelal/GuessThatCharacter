@@ -1,6 +1,7 @@
 import "./style.css";
 import { characters, categories, buildQuestionText, type Character } from "./characters";
 import { avatarSVG } from "./avatar";
+import { playSound, isSoundEnabled, setSoundEnabled } from "./sound";
 
 type Team = "Red" | "Blue";
 
@@ -63,6 +64,19 @@ async function api(path: string, method: string, body?: unknown) {
   return data;
 }
 
+function teamOf(r: RoomState | null): Team | null {
+  if (!r || !myPlayerId) return null;
+  return r.players.find((p) => p.id === myPlayerId)?.team ?? null;
+}
+
+function setRoom(newRoom: RoomState | null) {
+  const wasFinished = room?.status === "finished";
+  if (newRoom && !wasFinished && newRoom.status === "finished") {
+    playSound(newRoom.winner === teamOf(newRoom) ? "win" : "lose");
+  }
+  room = newRoom;
+}
+
 function stopPolling() {
   if (pollTimer) {
     clearInterval(pollTimer);
@@ -76,7 +90,7 @@ function startPolling(code: string) {
     try {
       const data = await api(`/rooms/${code}?playerId=${myPlayerId}&token=${myToken}`, "GET");
       if (JSON.stringify(data.room) === JSON.stringify(room)) return;
-      room = data.room;
+      setRoom(data.room);
       render();
     } catch {
       stopPolling();
@@ -96,7 +110,7 @@ async function createRoom() {
     const data = await api("/rooms", "POST", { name: playerName });
     myPlayerId = data.playerId;
     myToken = data.token;
-    room = data.room;
+    setRoom(data.room);
     errorMsg = "";
     startPolling(room!.code);
     render();
@@ -118,7 +132,7 @@ async function joinRoom(code: string) {
     const data = await roomAction(trimmed, { action: "join", name: playerName });
     myPlayerId = data.playerId;
     myToken = data.token;
-    room = data.room;
+    setRoom(data.room);
     errorMsg = "";
     startPolling(room!.code);
     render();
@@ -132,7 +146,7 @@ async function switchTeam(team: Team) {
   if (!room || !myPlayerId) return;
   try {
     const data = await roomAction(room.code, { action: "team", playerId: myPlayerId, token: myToken, team });
-    room = data.room;
+    setRoom(data.room);
     render();
   } catch (e: any) {
     errorMsg = e.message;
@@ -144,7 +158,7 @@ async function startGame() {
   if (!room || !myPlayerId) return;
   try {
     const data = await roomAction(room.code, { action: "start", playerId: myPlayerId, token: myToken });
-    room = data.room;
+    setRoom(data.room);
     errorMsg = "";
     render();
   } catch (e: any) {
@@ -157,7 +171,8 @@ async function pickCharacter(characterId: string) {
   if (!room || !myPlayerId) return;
   try {
     const data = await roomAction(room.code, { action: "pick", playerId: myPlayerId, token: myToken, characterId });
-    room = data.room;
+    setRoom(data.room);
+    playSound("click");
     render();
   } catch (e: any) {
     errorMsg = e.message;
@@ -169,7 +184,9 @@ async function askQuestion(categoryKey: string, value: string) {
   if (!room || !myPlayerId) return;
   try {
     const data = await roomAction(room.code, { action: "question", playerId: myPlayerId, token: myToken, categoryKey, value });
-    room = data.room;
+    setRoom(data.room);
+    const lastEntry = data.room.log[data.room.log.length - 1];
+    playSound(lastEntry?.result === "Yes" ? "yes" : "no");
     openCategoryKey = null;
     render();
   } catch (e: any) {
@@ -183,7 +200,8 @@ async function passTurn() {
   if (!room || !myPlayerId) return;
   try {
     const data = await roomAction(room.code, { action: "pass", playerId: myPlayerId, token: myToken });
-    room = data.room;
+    setRoom(data.room);
+    playSound("pass");
     render();
   } catch (e: any) {
     errorMsg = e.message;
@@ -195,7 +213,8 @@ async function toggleCross(characterId: string) {
   if (!room || !myPlayerId) return;
   try {
     const data = await roomAction(room.code, { action: "cross", playerId: myPlayerId, token: myToken, characterId });
-    room = data.room;
+    setRoom(data.room);
+    playSound("click");
     render();
   } catch (e: any) {
     errorMsg = e.message;
@@ -207,7 +226,7 @@ async function makeGuess(characterId: string) {
   if (!room || !myPlayerId) return;
   try {
     const data = await roomAction(room.code, { action: "guess", playerId: myPlayerId, token: myToken, characterId });
-    room = data.room;
+    setRoom(data.room);
     render();
   } catch (e: any) {
     errorMsg = e.message;
@@ -219,7 +238,7 @@ async function restartGame() {
   if (!room || !myPlayerId) return;
   try {
     const data = await roomAction(room.code, { action: "restart", playerId: myPlayerId, token: myToken });
-    room = data.room;
+    setRoom(data.room);
     errorMsg = "";
     openCategoryKey = null;
     render();
@@ -272,8 +291,7 @@ function inviteLink(code: string): string {
 }
 
 function myTeam(): Team | null {
-  if (!room || !myPlayerId) return null;
-  return room.players.find((p) => p.id === myPlayerId)?.team ?? null;
+  return teamOf(room);
 }
 
 function render() {
@@ -554,6 +572,7 @@ function renderGame() {
   document.querySelectorAll<HTMLButtonElement>(".cat-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       openCategoryKey = btn.dataset.key!;
+      playSound("click");
       render();
     });
   });
@@ -648,4 +667,19 @@ function renderWinnerModal(r: RoomState, team: Team | null) {
   `;
 }
 
+function initSoundToggle() {
+  const btn = document.createElement("button");
+  btn.id = "sound-toggle";
+  btn.className = "sound-toggle";
+  btn.title = "Toggle sound";
+  btn.setAttribute("aria-label", "Toggle sound");
+  btn.textContent = isSoundEnabled() ? "🔊" : "🔇";
+  btn.addEventListener("click", () => {
+    setSoundEnabled(!isSoundEnabled());
+    btn.textContent = isSoundEnabled() ? "🔊" : "🔇";
+  });
+  document.body.appendChild(btn);
+}
+
+initSoundToggle();
 render();
