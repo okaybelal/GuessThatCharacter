@@ -75,6 +75,7 @@ function startPolling(code: string) {
   pollTimer = setInterval(async () => {
     try {
       const data = await api(`/rooms/${code}?playerId=${myPlayerId}&token=${myToken}`, "GET");
+      if (JSON.stringify(data.room) === JSON.stringify(room)) return;
       room = data.room;
       render();
     } catch {
