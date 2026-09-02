@@ -342,6 +342,31 @@ button.card:not(:disabled):not(.eliminated):hover,
   background: rgba(34, 197, 94, 0.25);
 }
 
+.share-link-btn {
+  display: block;
+  width: 100%;
+  margin: 0 0 1.25rem;
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.share-link-btn:hover {
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.share-link-btn.copied {
+  border-color: #22c55e;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.12);
+}
+
 .hint {
   color: var(--text-dim);
   font-size: 0.85rem;

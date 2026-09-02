@@ -245,12 +245,12 @@ async function leaveRoom() {
   render();
 }
 
-async function copyRoomCode(btn: HTMLButtonElement, code: string) {
+async function copyToClipboard(btn: HTMLButtonElement, text: string, copiedLabel: string) {
   try {
-    await navigator.clipboard.writeText(code);
+    await navigator.clipboard.writeText(text);
   } catch {
     const ta = document.createElement("textarea");
-    ta.value = code;
+    ta.value = text;
     ta.style.position = "fixed";
     ta.style.opacity = "0";
     document.body.appendChild(ta);
@@ -259,12 +259,16 @@ async function copyRoomCode(btn: HTMLButtonElement, code: string) {
     document.body.removeChild(ta);
   }
   const original = btn.textContent;
-  btn.textContent = "✅";
+  btn.textContent = copiedLabel;
   btn.classList.add("copied");
   setTimeout(() => {
     btn.textContent = original;
     btn.classList.remove("copied");
   }, 1200);
+}
+
+function inviteLink(code: string): string {
+  return `${location.origin}${location.pathname}?room=${code}`;
 }
 
 function myTeam(): Team | null {
@@ -294,6 +298,8 @@ function render() {
 }
 
 function renderLobby() {
+  const codeFromLink = new URLSearchParams(location.search).get("room")?.toUpperCase() ?? "";
+
   app.innerHTML = `
     <div class="game lobby">
       <header>
@@ -316,7 +322,7 @@ function renderLobby() {
           <div class="join-block">
             <h2>Join a Room</h2>
             <div class="join-row">
-              <input id="code-input" type="text" maxlength="5" placeholder="ROOM CODE" />
+              <input id="code-input" type="text" maxlength="5" placeholder="ROOM CODE" value="${escapeHtml(codeFromLink)}" />
               <button id="join-btn" class="mode-btn">Join</button>
             </div>
           </div>
@@ -355,6 +361,7 @@ function renderWaitingRoom() {
           <button id="copy-code-btn" class="copy-btn" title="Copy room code" aria-label="Copy room code">📋</button>
         </p>
         <p class="hint">Share this code with your friends so they can join. Anyone can switch teams before the game starts.</p>
+        <button id="copy-link-btn" class="share-link-btn">🔗 Copy Invite Link</button>
 
         <div class="teams-preview">
           <div class="team-col team-red">
@@ -379,7 +386,10 @@ function renderWaitingRoom() {
   document.querySelector<HTMLButtonElement>("#start-btn")!.addEventListener("click", startGame);
   document.querySelector<HTMLButtonElement>("#leave-btn")!.addEventListener("click", leaveRoom);
   document.querySelector<HTMLButtonElement>("#copy-code-btn")!.addEventListener("click", (e) => {
-    copyRoomCode(e.currentTarget as HTMLButtonElement, r.code);
+    copyToClipboard(e.currentTarget as HTMLButtonElement, r.code, "✅");
+  });
+  document.querySelector<HTMLButtonElement>("#copy-link-btn")!.addEventListener("click", (e) => {
+    copyToClipboard(e.currentTarget as HTMLButtonElement, inviteLink(r.code), "✅ Copied!");
   });
   document.querySelectorAll<HTMLButtonElement>(".switch-btn").forEach((btn) => {
     btn.addEventListener("click", () => switchTeam(btn.dataset.team as Team));
