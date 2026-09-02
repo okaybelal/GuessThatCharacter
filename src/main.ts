@@ -245,6 +245,28 @@ async function leaveRoom() {
   render();
 }
 
+async function copyRoomCode(btn: HTMLButtonElement, code: string) {
+  try {
+    await navigator.clipboard.writeText(code);
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = code;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+  }
+  const original = btn.textContent;
+  btn.textContent = "✅";
+  btn.classList.add("copied");
+  setTimeout(() => {
+    btn.textContent = original;
+    btn.classList.remove("copied");
+  }, 1200);
+}
+
 function myTeam(): Team | null {
   if (!room || !myPlayerId) return null;
   return room.players.find((p) => p.id === myPlayerId)?.team ?? null;
@@ -329,7 +351,9 @@ function renderWaitingRoom() {
       </header>
 
       <section class="panel">
-        <p class="room-code">Room Code: <strong>${r.code}</strong></p>
+        <p class="room-code">Room Code: <strong>${r.code}</strong>
+          <button id="copy-code-btn" class="copy-btn" title="Copy room code" aria-label="Copy room code">📋</button>
+        </p>
         <p class="hint">Share this code with your friends so they can join. Anyone can switch teams before the game starts.</p>
 
         <div class="teams-preview">
@@ -354,6 +378,9 @@ function renderWaitingRoom() {
 
   document.querySelector<HTMLButtonElement>("#start-btn")!.addEventListener("click", startGame);
   document.querySelector<HTMLButtonElement>("#leave-btn")!.addEventListener("click", leaveRoom);
+  document.querySelector<HTMLButtonElement>("#copy-code-btn")!.addEventListener("click", (e) => {
+    copyRoomCode(e.currentTarget as HTMLButtonElement, r.code);
+  });
   document.querySelectorAll<HTMLButtonElement>(".switch-btn").forEach((btn) => {
     btn.addEventListener("click", () => switchTeam(btn.dataset.team as Team));
   });
