@@ -3,6 +3,22 @@ import { packs, getPack, buildQuestionText, type Character } from "./characters"
 import { avatarSVG } from "./avatar";
 import { playSound, isSoundEnabled, setSoundEnabled } from "./sound";
 
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: { client_id: string; callback: (resp: { credential: string }) => void }) => void;
+          renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void;
+        };
+      };
+    };
+  }
+  interface ImportMetaEnv {
+    readonly VITE_GOOGLE_CLIENT_ID?: string;
+  }
+}
+
 type Team = "Red" | "Blue";
 
 interface PublicPlayer {
@@ -41,6 +57,28 @@ interface RoomState {
   reveal?: { red?: Character; blue?: Character };
 }
 
+interface PublicUser {
+  id: string;
+  name: string;
+  username: string;
+  avatarUrl: string | null;
+}
+
+interface FriendView extends PublicUser {
+  online: boolean;
+}
+
+interface IncomingRequestView {
+  id: string;
+  from: PublicUser;
+}
+
+interface PendingInviteView {
+  id: string;
+  from: PublicUser;
+  roomCode: string;
+}
+
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
 let myPlayerId: string | null = null;
@@ -50,6 +88,16 @@ let errorMsg = "";
 let playerName = localStorage.getItem("gtc-name") || "";
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let openCategoryKey: string | null = null;
+
+let sessionToken: string | null = localStorage.getItem("gtc-session");
+let currentUser: PublicUser | null = null;
+let friends: FriendView[] = [];
+let incomingRequests: IncomingRequestView[] = [];
+let pendingInvites: PendingInviteView[] = [];
+let friendsPanelOpen = false;
+let addFriendInput = "";
+let socialError = "";
+let socialPollTimer: ReturnType<typeof setInterval> | null = null;
 
 function escapeHtml(str: string): string {
   return str.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -64,6 +112,162 @@ async function api(path: string, method: string, body?: unknown) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Request failed");
   return data;
+}
+
+function applySocialState(data: { friends?: FriendView[]; incomingRequests?: IncomingRequestView[]; pendingInvites?: PendingInviteView[] }) {
+  if (data.friends) friends = data.friends;
+  if (data.incomingRequests) incomingRequests = data.incomingRequests;
+  if (data.pendingInvites) pendingInvites = data.pendingInvites;
+}
+
+function stopSocialPolling() {
+  if (socialPollTimer) {
+    clearInterval(socialPollTimer);
+    socialPollTimer = null;
+  }
+}
+
+function startSocialPolling() {
+  stopSocialPolling();
+  socialPollTimer = setInterval(async () => {
+    if (!sessionToken) return;
+    try {
+      const data = await api(`/social?token=${sessionToken}`, "GET");
+      applySocialState(data);
+      renderAuthWidget();
+      if (room) render();
+    } catch {
+      // transient network/poll failure — try again next tick
+    }
+  }, 5000);
+}
+
+async function restoreSession() {
+  if (!sessionToken) return;
+  try {
+    const data = await api(`/auth?token=${sessionToken}`, "GET");
+    currentUser = data.user;
+    if (!playerName.trim() && currentUser) playerName = currentUser.name;
+    startSocialPolling();
+    const social = await api(`/social?token=${sessionToken}`, "GET");
+    applySocialState(social);
+    renderAuthWidget();
+  } catch {
+    sessionToken = null;
+    localStorage.removeItem("gtc-session");
+    renderAuthWidget();
+  }
+}
+
+async function handleGoogleCredential(idToken: string) {
+  try {
+    const data = await api("/auth", "POST", { action: "signin", idToken });
+    currentUser = data.user;
+    sessionToken = data.token;
+    localStorage.setItem("gtc-session", data.token);
+    if (!playerName.trim() && currentUser) {
+      playerName = currentUser.name;
+      localStorage.setItem("gtc-name", playerName);
+    }
+    socialError = "";
+    startSocialPolling();
+    const social = await api(`/social?token=${sessionToken}`, "GET");
+    applySocialState(social);
+    renderAuthWidget();
+  } catch (e: any) {
+    socialError = e.message;
+    renderAuthWidget();
+  }
+}
+
+async function signOutUser() {
+  const token = sessionToken;
+  currentUser = null;
+  sessionToken = null;
+  friends = [];
+  incomingRequests = [];
+  pendingInvites = [];
+  friendsPanelOpen = false;
+  localStorage.removeItem("gtc-session");
+  stopSocialPolling();
+  renderAuthWidget();
+  if (token) {
+    try {
+      await api("/auth", "POST", { action: "logout", token });
+    } catch {
+      // best effort
+    }
+  }
+}
+
+async function sendFriendRequestByUsername() {
+  const username = addFriendInput.trim();
+  if (!username || !sessionToken) return;
+  try {
+    const data = await api("/social", "POST", { action: "send-friend-request", token: sessionToken, username });
+    applySocialState(data);
+    addFriendInput = "";
+    socialError = "";
+  } catch (e: any) {
+    socialError = e.message;
+  }
+  renderAuthWidget();
+}
+
+async function respondToFriendRequest(requestId: string, accept: boolean) {
+  if (!sessionToken) return;
+  try {
+    const data = await api("/social", "POST", { action: "respond-friend-request", token: sessionToken, requestId, accept });
+    applySocialState(data);
+    playSound("click");
+  } catch (e: any) {
+    socialError = e.message;
+  }
+  renderAuthWidget();
+}
+
+async function removeFriendById(friendId: string) {
+  if (!sessionToken) return;
+  try {
+    const data = await api("/social", "POST", { action: "remove-friend", token: sessionToken, friendId });
+    applySocialState(data);
+  } catch (e: any) {
+    socialError = e.message;
+  }
+  renderAuthWidget();
+}
+
+async function sendInviteToFriend(toUserId: string, btn: HTMLButtonElement) {
+  if (!sessionToken || !room) return;
+  try {
+    await api("/social", "POST", { action: "send-invite", token: sessionToken, toUserId, roomCode: room.code });
+    const original = btn.textContent;
+    btn.textContent = "✅ Sent!";
+    btn.disabled = true;
+    setTimeout(() => {
+      btn.textContent = original;
+      btn.disabled = false;
+    }, 1500);
+  } catch (e: any) {
+    socialError = e.message;
+    renderAuthWidget();
+  }
+}
+
+async function respondToInvite(inviteId: string, accept: boolean) {
+  if (!sessionToken) return;
+  try {
+    const data = await api("/social", "POST", { action: "respond-invite", token: sessionToken, inviteId, accept });
+    applySocialState(data);
+    renderAuthWidget();
+    if (accept && data.roomCode) {
+      friendsPanelOpen = false;
+      await joinRoom(data.roomCode);
+    }
+  } catch (e: any) {
+    socialError = e.message;
+    renderAuthWidget();
+  }
 }
 
 function teamOf(r: RoomState | null): Team | null {
@@ -379,6 +583,27 @@ function renderLobby() {
   });
 }
 
+function renderInviteFriendsSection(): string {
+  const online = friends.filter((f) => f.online);
+  return `
+    <div class="invite-friends">
+      <h2>Invite an Online Friend</h2>
+      <div class="invite-friends-list">
+        ${online
+          .map(
+            (f) => `
+          <div class="invite-friend-row">
+            <span class="friend-status online">●</span>
+            <span>${escapeHtml(f.username)}</span>
+            <button class="invite-friend-btn" data-id="${f.id}">Invite</button>
+          </div>`
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
 function renderWaitingRoom() {
   const r = room!;
   const teamRed = r.players.filter((p) => p.team === "Red");
@@ -401,6 +626,8 @@ function renderWaitingRoom() {
         </p>
         <p class="hint">Share this code with your friends so they can join. Anyone can switch teams before the game starts.</p>
         <button id="copy-link-btn" class="share-link-btn">🔗 Copy Invite Link</button>
+
+        ${currentUser && friends.some((f) => f.online) ? renderInviteFriendsSection() : ""}
 
         <div class="pack-picker">
           <h2>Character Pack${isHost ? "" : ` — chosen by host`}</h2>
@@ -453,6 +680,9 @@ function renderWaitingRoom() {
       btn.addEventListener("click", () => choosePack(btn.dataset.pack!));
     });
   }
+  document.querySelectorAll<HTMLButtonElement>(".invite-friend-btn").forEach((btn) => {
+    btn.addEventListener("click", () => sendInviteToFriend(btn.dataset.id!, btn));
+  });
 }
 
 function renderPicking() {
@@ -723,5 +953,168 @@ function initSoundToggle() {
   document.body.appendChild(btn);
 }
 
+const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined) || "";
+
+function initGoogleSignInButton(container: HTMLElement, attempt = 0) {
+  if (!GOOGLE_CLIENT_ID) {
+    container.innerHTML = `<span class="auth-unconfigured" title="Google sign-in is not configured yet">🔒 Sign-in unavailable</span>`;
+    return;
+  }
+  if (!window.google?.accounts?.id) {
+    if (attempt > 20) return;
+    setTimeout(() => initGoogleSignInButton(container, attempt + 1), 250);
+    return;
+  }
+  window.google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: (resp) => handleGoogleCredential(resp.credential),
+  });
+  window.google.accounts.id.renderButton(container, { theme: "filled_black", size: "medium", shape: "pill" });
+}
+
+function renderFriendsPanel(): string {
+  return `
+    <div class="friends-backdrop">
+      <div class="friends-panel">
+        <button id="friends-panel-close" class="modal-close">✕</button>
+        <h2>👥 Friends</h2>
+        ${socialError ? `<p class="error">${escapeHtml(socialError)}</p>` : ""}
+
+        <div class="add-friend-row">
+          <input id="add-friend-input" type="text" placeholder="Add by username" value="${escapeHtml(addFriendInput)}" maxlength="20" />
+          <button id="add-friend-btn" class="mode-btn">Add</button>
+        </div>
+
+        ${
+          pendingInvites.length
+            ? `<h3>Game Invites</h3><div class="invite-list">
+                ${pendingInvites
+                  .map(
+                    (inv) => `
+                  <div class="invite-row">
+                    <span>${escapeHtml(inv.from.username)} invited you (Room ${escapeHtml(inv.roomCode)})</span>
+                    <div class="invite-actions">
+                      <button class="invite-accept-btn" data-id="${inv.id}">Join</button>
+                      <button class="invite-decline-btn" data-id="${inv.id}">✕</button>
+                    </div>
+                  </div>`
+                  )
+                  .join("")}
+              </div>`
+            : ""
+        }
+
+        ${
+          incomingRequests.length
+            ? `<h3>Friend Requests</h3><div class="request-list">
+                ${incomingRequests
+                  .map(
+                    (r) => `
+                  <div class="request-row">
+                    <span>${escapeHtml(r.from.username)}</span>
+                    <div class="request-actions">
+                      <button class="request-accept-btn" data-id="${r.id}">✅</button>
+                      <button class="request-decline-btn" data-id="${r.id}">✕</button>
+                    </div>
+                  </div>`
+                  )
+                  .join("")}
+              </div>`
+            : ""
+        }
+
+        <h3>Your Friends (${friends.length})</h3>
+        <div class="friend-list">
+          ${
+            friends.length
+              ? friends
+                  .map(
+                    (f) => `
+                <div class="friend-row">
+                  <span class="friend-status ${f.online ? "online" : "offline"}">●</span>
+                  <span>${escapeHtml(f.username)}</span>
+                  <button class="friend-remove-btn" data-id="${f.id}" title="Remove friend">✕</button>
+                </div>`
+                  )
+                  .join("")
+              : `<p class="hint">No friends yet — add one by username above.</p>`
+          }
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderAuthWidget() {
+  const widget = document.getElementById("auth-widget");
+  if (!widget) return;
+
+  if (!currentUser) {
+    widget.innerHTML = `<div id="google-signin-container"></div>${socialError ? `<p class="auth-error">${escapeHtml(socialError)}</p>` : ""}`;
+    initGoogleSignInButton(document.getElementById("google-signin-container")!);
+    return;
+  }
+
+  const notifCount = incomingRequests.length + pendingInvites.length;
+  widget.innerHTML = `
+    <div class="user-chip">
+      <button id="friends-toggle-btn" class="friends-btn">
+        👤 ${escapeHtml(currentUser.username)}${notifCount > 0 ? `<span class="notif-badge">${notifCount}</span>` : ""}
+      </button>
+      <button id="sign-out-btn" class="sign-out-btn" title="Sign out">⎋</button>
+    </div>
+    ${friendsPanelOpen ? renderFriendsPanel() : ""}
+  `;
+
+  document.getElementById("friends-toggle-btn")!.addEventListener("click", () => {
+    friendsPanelOpen = !friendsPanelOpen;
+    renderAuthWidget();
+  });
+  document.getElementById("sign-out-btn")!.addEventListener("click", () => signOutUser());
+
+  if (friendsPanelOpen) {
+    document.querySelector<HTMLDivElement>(".friends-backdrop")!.addEventListener("click", (e) => {
+      if (e.target === e.currentTarget) {
+        friendsPanelOpen = false;
+        renderAuthWidget();
+      }
+    });
+    document.getElementById("friends-panel-close")!.addEventListener("click", () => {
+      friendsPanelOpen = false;
+      renderAuthWidget();
+    });
+    const input = document.getElementById("add-friend-input") as HTMLInputElement;
+    input.addEventListener("input", () => (addFriendInput = input.value));
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendFriendRequestByUsername();
+    });
+    document.getElementById("add-friend-btn")!.addEventListener("click", () => sendFriendRequestByUsername());
+    document.querySelectorAll<HTMLButtonElement>(".request-accept-btn").forEach((btn) => {
+      btn.addEventListener("click", () => respondToFriendRequest(btn.dataset.id!, true));
+    });
+    document.querySelectorAll<HTMLButtonElement>(".request-decline-btn").forEach((btn) => {
+      btn.addEventListener("click", () => respondToFriendRequest(btn.dataset.id!, false));
+    });
+    document.querySelectorAll<HTMLButtonElement>(".friend-remove-btn").forEach((btn) => {
+      btn.addEventListener("click", () => removeFriendById(btn.dataset.id!));
+    });
+    document.querySelectorAll<HTMLButtonElement>(".invite-accept-btn").forEach((btn) => {
+      btn.addEventListener("click", () => respondToInvite(btn.dataset.id!, true));
+    });
+    document.querySelectorAll<HTMLButtonElement>(".invite-decline-btn").forEach((btn) => {
+      btn.addEventListener("click", () => respondToInvite(btn.dataset.id!, false));
+    });
+  }
+}
+
+function initAuthWidget() {
+  const widget = document.createElement("div");
+  widget.id = "auth-widget";
+  document.body.appendChild(widget);
+  renderAuthWidget();
+  restoreSession();
+}
+
 initSoundToggle();
+initAuthWidget();
 render();
