@@ -515,12 +515,115 @@ const musicianCharacters: Character[] = [
   { id: "olivia-rodrigo", name: "Olivia Rodrigo", source: "Pop", emoji: "💜", color: "#9b59b6", gender: "female", genre: "pop", awardWinner: true, groupBased: false, region: "north-america", breakoutEra: "newer" },
 ];
 
+const tvActorCategories: CategoryDef[] = [
+  {
+    key: "gender",
+    label: "Gender",
+    icon: "🚻",
+    question: "Are they {value}?",
+    values: [
+      { value: "male", label: "Male", icon: "👨" },
+      { value: "female", label: "Female", icon: "👩" },
+    ],
+  },
+  {
+    key: "alignment",
+    label: "Character Alignment",
+    icon: "⚖️",
+    question: "Is their signature character a {value}?",
+    values: [
+      { value: "hero", label: "Hero", icon: "🦸" },
+      { value: "villain", label: "Villain", icon: "🦹" },
+    ],
+  },
+  {
+    key: "species",
+    label: "Character Species",
+    icon: "🧬",
+    question: "Is their signature character {value}?",
+    values: [
+      { value: "human", label: "Human", icon: "🧑" },
+      { value: "creature", label: "Creature", icon: "🐾" },
+      { value: "robot", label: "Robot", icon: "🤖" },
+      { value: "magical", label: "Magical Being", icon: "🧝" },
+    ],
+  },
+  {
+    key: "powers",
+    label: "Character Powers",
+    icon: "✨",
+    question: "Does their signature character have {value} powers?",
+    values: [
+      { value: "none", label: "None", icon: "🚫" },
+      { value: "superpowers", label: "Superpowers", icon: "💪" },
+      { value: "magic", label: "Magic", icon: "🪄" },
+      { value: "tech", label: "Tech / Skill", icon: "🛠️" },
+    ],
+  },
+  {
+    key: "weapon",
+    label: "Character Weapon",
+    icon: "🗡️",
+    question: "Does their signature character use a {value} weapon?",
+    values: [
+      { value: "none", label: "None", icon: "🚫" },
+      { value: "melee", label: "Melee", icon: "⚔️" },
+      { value: "ranged", label: "Ranged", icon: "🏹" },
+      { value: "magic", label: "Magic / Energy", icon: "🔮" },
+    ],
+  },
+  {
+    key: "costume",
+    label: "Costume",
+    icon: "🎭",
+    question: "Does their signature character wear a costume?",
+    values: [
+      { value: "true", label: "Wears a costume", icon: "✅" },
+      { value: "false", label: "No costume", icon: "❌" },
+    ],
+  },
+];
+
+const tvActorCharacters: Character[] = [
+  { id: "bryan-cranston", name: "Bryan Cranston", source: "Walter White · Breaking Bad", emoji: "🧪", color: "#2f7d4f", gender: "male", alignment: "villain", species: "human", powers: "none", weapon: "ranged", costume: false },
+  { id: "pedro-pascal", name: "Pedro Pascal", source: "Din Djarin · The Mandalorian", emoji: "🛡️", color: "#4a4a4a", gender: "male", alignment: "hero", species: "human", powers: "none", weapon: "ranged", costume: true },
+  { id: "steve-carell", name: "Steve Carell", source: "Michael Scott · The Office", emoji: "📎", color: "#3b6ea5", gender: "male", alignment: "hero", species: "human", powers: "none", weapon: "none", costume: false },
+  { id: "kit-harington", name: "Kit Harington", source: "Jon Snow · Game of Thrones", emoji: "⚔️", color: "#4a4a4a", gender: "male", alignment: "hero", species: "human", powers: "none", weapon: "melee", costume: false },
+  { id: "peter-dinklage", name: "Peter Dinklage", source: "Tyrion Lannister · Game of Thrones", emoji: "🍺", color: "#7a1f1f", gender: "male", alignment: "hero", species: "human", powers: "none", weapon: "none", costume: false },
+  { id: "henry-cavill", name: "Henry Cavill", source: "Geralt of Rivia · The Witcher", emoji: "🗡️", color: "#34495e", gender: "male", alignment: "hero", species: "creature", powers: "magic", weapon: "melee", costume: true },
+  { id: "jason-sudeikis", name: "Jason Sudeikis", source: "Ted Lasso · Ted Lasso", emoji: "⚽", color: "#f1c40f", gender: "male", alignment: "hero", species: "human", powers: "none", weapon: "none", costume: false },
+  { id: "bob-odenkirk", name: "Bob Odenkirk", source: "Saul Goodman · Better Call Saul", emoji: "💼", color: "#c0392b", gender: "male", alignment: "villain", species: "human", powers: "none", weapon: "none", costume: false },
+  { id: "milo-ventimiglia", name: "Milo Ventimiglia", source: "Jack Pearson · This Is Us", emoji: "👨‍👩‍👧", color: "#8b4513", gender: "male", alignment: "hero", species: "human", powers: "none", weapon: "none", costume: false },
+  { id: "sterling-k-brown", name: "Sterling K. Brown", source: "Randall Pearson · This Is Us", emoji: "🎭", color: "#2c3e50", gender: "male", alignment: "hero", species: "human", powers: "none", weapon: "none", costume: false },
+  { id: "norman-reedus", name: "Norman Reedus", source: "Daryl Dixon · The Walking Dead", emoji: "🏹", color: "#556b2f", gender: "male", alignment: "hero", species: "human", powers: "none", weapon: "ranged", costume: false },
+  { id: "jason-momoa", name: "Jason Momoa", source: "Khal Drogo · Game of Thrones", emoji: "🔱", color: "#1a5276", gender: "male", alignment: "hero", species: "human", powers: "none", weapon: "melee", costume: false },
+  { id: "michael-c-hall", name: "Michael C. Hall", source: "Dexter Morgan · Dexter", emoji: "🔪", color: "#922b21", gender: "male", alignment: "villain", species: "human", powers: "none", weapon: "melee", costume: false },
+  { id: "lee-jung-jae", name: "Lee Jung-jae", source: "Seong Gi-hun · Squid Game", emoji: "🦑", color: "#e91e63", gender: "male", alignment: "hero", species: "human", powers: "none", weapon: "none", costume: false },
+  { id: "brent-spiner", name: "Brent Spiner", source: "Data · Star Trek: TNG", emoji: "🤖", color: "#7f8c8d", gender: "male", alignment: "hero", species: "robot", powers: "tech", weapon: "none", costume: true },
+  { id: "elisabeth-moss", name: "Elisabeth Moss", source: "June Osborne · The Handmaid's Tale", emoji: "🔴", color: "#a93226", gender: "female", alignment: "hero", species: "human", powers: "none", weapon: "none", costume: true },
+  { id: "sophie-turner", name: "Sophie Turner", source: "Sansa Stark · Game of Thrones", emoji: "🐺", color: "#7f8c8d", gender: "female", alignment: "hero", species: "human", powers: "none", weapon: "none", costume: false },
+  { id: "emilia-clarke", name: "Emilia Clarke", source: "Daenerys Targaryen · Game of Thrones", emoji: "🐉", color: "#e8912d", gender: "female", alignment: "hero", species: "human", powers: "magic", weapon: "none", costume: true },
+  { id: "anya-taylor-joy", name: "Anya Taylor-Joy", source: "Beth Harmon · The Queen's Gambit", emoji: "♟️", color: "#34495e", gender: "female", alignment: "hero", species: "human", powers: "tech", weapon: "none", costume: false },
+  { id: "jennifer-aniston", name: "Jennifer Aniston", source: "Rachel Green · Friends", emoji: "☕", color: "#d4a76a", gender: "female", alignment: "hero", species: "human", powers: "none", weapon: "none", costume: false },
+  { id: "reese-witherspoon", name: "Reese Witherspoon", source: "Bradley Jackson · The Morning Show", emoji: "📺", color: "#f4d03f", gender: "female", alignment: "hero", species: "human", powers: "none", weapon: "none", costume: false },
+  { id: "nicole-kidman", name: "Nicole Kidman", source: "Celeste Wright · Big Little Lies", emoji: "🌊", color: "#85c1e9", gender: "female", alignment: "hero", species: "human", powers: "none", weapon: "none", costume: false },
+  { id: "sarah-paulson", name: "Sarah Paulson", source: "American Horror Story", emoji: "🕯️", color: "#6c3483", gender: "female", alignment: "villain", species: "human", powers: "magic", weapon: "none", costume: false },
+  { id: "viola-davis", name: "Viola Davis", source: "Annalise Keating · How to Get Away with Murder", emoji: "⚖️", color: "#6d4c41", gender: "female", alignment: "hero", species: "human", powers: "none", weapon: "none", costume: false },
+  { id: "julia-garner", name: "Julia Garner", source: "Ruth Langmore · Ozark", emoji: "💵", color: "#145a32", gender: "female", alignment: "villain", species: "human", powers: "none", weapon: "ranged", costume: false },
+  { id: "jenna-ortega", name: "Jenna Ortega", source: "Wednesday Addams · Wednesday", emoji: "🖤", color: "#2b2b2b", gender: "female", alignment: "hero", species: "human", powers: "superpowers", weapon: "none", costume: false },
+  { id: "kaley-cuoco", name: "Kaley Cuoco", source: "Penny · The Big Bang Theory", emoji: "🧠", color: "#f5b041", gender: "female", alignment: "hero", species: "human", powers: "none", weapon: "none", costume: false },
+  { id: "mindy-kaling", name: "Mindy Kaling", source: "Kelly Kapoor · The Office", emoji: "💬", color: "#d63384", gender: "female", alignment: "hero", species: "human", powers: "none", weapon: "none", costume: false },
+  { id: "elizabeth-olsen", name: "Elizabeth Olsen", source: "Wanda Maximoff · WandaVision", emoji: "🔴", color: "#922b21", gender: "female", alignment: "hero", species: "magical", powers: "magic", weapon: "magic", costume: true },
+  { id: "jung-ho-yeon", name: "Jung Ho-yeon", source: "Kang Sae-byeok · Squid Game", emoji: "🦑", color: "#ff1493", gender: "female", alignment: "hero", species: "human", powers: "none", weapon: "melee", costume: false },
+];
+
 export const packs: Pack[] = [
   { key: "classic", label: "Movies & TV Characters", icon: "🎬", characters: classicCharacters, categories: classicCategories },
   { key: "anime", label: "Anime Characters", icon: "🍥", characters: animeCharacters, categories: classicCategories },
   { key: "youtubers", label: "YouTubers", icon: "▶️", characters: youtuberCharacters, categories: youtuberCategories },
   { key: "actors", label: "Movie Character Actors", icon: "🎥", characters: actorCharacters, categories: actorCategories },
   { key: "musicians", label: "Musicians", icon: "🎵", characters: musicianCharacters, categories: musicianCategories },
+  { key: "tv-actors", label: "TV Series Character Actors", icon: "📺", characters: tvActorCharacters, categories: tvActorCategories },
 ];
 
 export const DEFAULT_PACK_KEY = "classic";
