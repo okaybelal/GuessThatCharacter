@@ -10,6 +10,7 @@ import {
   toggleCross,
   makeGuess,
   restartGame,
+  backToLobby,
   leaveRoom,
   publicRoom,
 } from "../../_game.js";
@@ -61,6 +62,9 @@ export default async function handler(req: any, res: any) {
           break;
         case "restart":
           restartGame(r, playerId, token);
+          break;
+        case "lobby":
+          backToLobby(r, playerId, token);
           break;
         case "leave":
           leaveRoom(r, playerId, token);

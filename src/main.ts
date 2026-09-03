@@ -467,6 +467,20 @@ async function restartGame() {
   }
 }
 
+async function backToLobby() {
+  if (!room || !myPlayerId) return;
+  try {
+    const data = await roomAction(room.code, { action: "lobby", playerId: myPlayerId, token: myToken });
+    setRoom(data.room);
+    errorMsg = "";
+    openCategoryKey = null;
+    render();
+  } catch (e: any) {
+    errorMsg = e.message;
+    render();
+  }
+}
+
 async function leaveRoom() {
   if (room && myPlayerId) {
     try {
@@ -863,6 +877,7 @@ function renderGame() {
 
   if (finished) {
     document.querySelector<HTMLButtonElement>("#play-again-btn")?.addEventListener("click", restartGame);
+    document.querySelector<HTMLButtonElement>("#change-type-btn")?.addEventListener("click", backToLobby);
     document.querySelector<HTMLButtonElement>("#modal-leave-btn")?.addEventListener("click", leaveRoom);
   }
 
@@ -932,6 +947,7 @@ function renderWinnerModal(r: RoomState, team: Team | null) {
         </div>
         <div class="modal-actions">
           <button id="play-again-btn" class="restart">🔁 Play Again</button>
+          <button id="change-type-btn" class="share-link-btn">🔀 Change Game Type</button>
           <button id="modal-leave-btn" class="leave">Leave Room</button>
         </div>
       </div>
