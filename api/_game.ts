@@ -251,6 +251,22 @@ export function restartGame(room: Room, playerId: string, token: string) {
   room.askedThisTurn = false;
 }
 
+export function backToLobby(room: Room, playerId: string, token: string) {
+  requirePlayer(room, playerId, token);
+  if (room.status !== "finished") throw new ApiError(400, "Game is not finished yet.");
+  room.status = "lobby";
+  room.redSecretId = undefined;
+  room.blueSecretId = undefined;
+  room.redEliminated = [];
+  room.blueEliminated = [];
+  room.redCrossed = [];
+  room.blueCrossed = [];
+  room.log = [];
+  room.winner = undefined;
+  room.turnTeam = "Red";
+  room.askedThisTurn = false;
+}
+
 export function leaveRoom(room: Room, playerId: string, token: string) {
   requirePlayer(room, playerId, token);
   room.players = room.players.filter((p) => p.id !== playerId);

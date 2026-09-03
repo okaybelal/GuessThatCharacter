@@ -823,6 +823,7 @@ button.card:not(:disabled):not(.eliminated):hover,
 }
 
 .modal-actions .restart,
+.modal-actions .share-link-btn,
 .modal-actions .leave {
   margin: 0;
   width: 100%;
