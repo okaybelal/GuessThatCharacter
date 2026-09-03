@@ -151,6 +151,21 @@ h2 {
   cursor: not-allowed;
 }
 
+.cat-btn.cat-dead {
+  opacity: 0.55;
+  border-style: dashed;
+}
+
+.cat-dead-badge {
+  font-size: 0.6rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.1;
+}
+
 .pack-picker {
   margin-bottom: 1.5rem;
 }

@@ -786,13 +786,16 @@ function renderGame() {
         ${isMyTurn && !finished && r.askedThisTurn ? `<p class="hint">You've asked your question for this turn — pass or lock in a guess.</p>` : ""}
         <div class="category-grid">
           ${pack.categories
-            .map(
-              (cat) => `
-            <button class="cat-btn" data-key="${cat.key}" ${isMyTurn && !finished && !r.askedThisTurn ? "" : "disabled"}>
+            .map((cat) => {
+              const distinctValues = new Set(remaining.map((c) => String((c as any)[cat.key])));
+              const isDead = remaining.length > 1 && distinctValues.size <= 1;
+              return `
+            <button class="cat-btn ${isDead ? "cat-dead" : ""}" data-key="${cat.key}" ${isMyTurn && !finished && !r.askedThisTurn ? "" : "disabled"} ${isDead ? `title="Every remaining character shares this trait — asking won't narrow anything down."` : ""}>
               <span class="cat-icon">${cat.icon}</span>
               <span class="cat-label">${cat.label}</span>
-            </button>`
-            )
+              ${isDead ? `<span class="cat-dead-badge">won't narrow it down</span>` : ""}
+            </button>`;
+            })
             .join("")}
         </div>
         <div class="log">
