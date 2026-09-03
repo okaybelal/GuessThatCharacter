@@ -21,6 +21,7 @@ export interface Character {
   age?: AgeGroup;
   costume?: boolean;
   facialHair?: boolean;
+  nameInitial?: string;
   // real-person packs attach their own attribute keys here
   [key: string]: string | boolean | undefined;
 }
@@ -617,13 +618,37 @@ const cartoonCharacters: Character[] = [
   { id: "daria", name: "Daria Morgendorffer", source: "Daria", emoji: "🕶️", color: "#556b2f", species: "human", gender: "female", alignment: "hero", powers: "none", weapon: "none", format: "animated-tv", age: "teen", costume: false, facialHair: false },
 ];
 
+// Fixed trait categories can run out of distinguishing power before the character pool
+// does — e.g. several characters in a pack can share an identical species/gender/alignment/etc.
+// fingerprint, leaving no question that can ever tell them apart. Every pack gets this
+// category as a guaranteed last-resort tiebreaker, since names within a pack are unique.
+function firstLetter(name: string): string {
+  return name.trim().charAt(0).toUpperCase();
+}
+
+function nameInitialCategory(characters: Character[]): CategoryDef {
+  const letters = Array.from(new Set(characters.map((c) => firstLetter(c.name)))).sort();
+  return {
+    key: "nameInitial",
+    label: "Name Initial",
+    icon: "🔤",
+    question: 'Does their name start with the letter "{value}"?',
+    values: letters.map((l) => ({ value: l, label: l, icon: l })),
+  };
+}
+
+function buildPack(key: string, label: string, icon: string, characters: Character[], categories: CategoryDef[]): Pack {
+  const withInitials = characters.map((c) => ({ ...c, nameInitial: firstLetter(c.name) }));
+  return { key, label, icon, characters: withInitials, categories: [...categories, nameInitialCategory(characters)] };
+}
+
 export const packs: Pack[] = [
-  { key: "anime", label: "Anime Characters", icon: "🍥", characters: animeCharacters, categories: fictionalCategories },
-  { key: "cartoon", label: "Cartoon Characters", icon: "🎨", characters: cartoonCharacters, categories: fictionalCategories },
-  { key: "actors", label: "Movie Character Actors", icon: "🎥", characters: actorCharacters, categories: actorCategories },
-  { key: "musicians", label: "Musicians", icon: "🎵", characters: musicianCharacters, categories: musicianCategories },
-  { key: "tv-actors", label: "TV Series Character Actors", icon: "📺", characters: tvActorCharacters, categories: tvActorCategories },
-  { key: "youtubers", label: "YouTubers", icon: "▶️", characters: youtuberCharacters, categories: youtuberCategories },
+  buildPack("anime", "Anime Characters", "🍥", animeCharacters, fictionalCategories),
+  buildPack("cartoon", "Cartoon Characters", "🎨", cartoonCharacters, fictionalCategories),
+  buildPack("actors", "Movie Character Actors", "🎥", actorCharacters, actorCategories),
+  buildPack("musicians", "Musicians", "🎵", musicianCharacters, musicianCategories),
+  buildPack("tv-actors", "TV Series Character Actors", "📺", tvActorCharacters, tvActorCategories),
+  buildPack("youtubers", "YouTubers", "▶️", youtuberCharacters, youtuberCategories),
 ];
 
 export const DEFAULT_PACK_KEY = "anime";
