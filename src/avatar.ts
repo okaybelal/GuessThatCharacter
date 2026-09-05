@@ -20,6 +20,8 @@ function traitBadge(c: Character): { icon: string; bg: string } | null {
 }
 
 export function avatarSVG(c: Character): string {
+  if (c.customAvatar) return c.customAvatar;
+
   const { color } = c;
   const light = shade(color, 70);
   const dark = shade(color, -60);
