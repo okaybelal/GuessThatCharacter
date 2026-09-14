@@ -6,7 +6,10 @@ Live at [guessthatcharacter.vercel.app](https://guessthatcharacter.vercel.app/).
 
 ## Tech Stack
 
-Vite + TypeScript on the frontend, Vercel serverless functions on the backend, Neon Postgres for storage, Google Sign-In for auth.
+- **Frontend:** Vite + TypeScript
+- **Backend:** Vercel serverless functions
+- **Database:** Neon Postgres
+- **Auth:** Google Sign-In
 
 ## Features
 
