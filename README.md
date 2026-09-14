@@ -4,6 +4,13 @@ A multiplayer "Guess Who?" style game — each side secretly picks a character f
 
 Live at [guessthatcharacter.vercel.app](https://guessthatcharacter.vercel.app/).
 
+## Tech Stack
+
+- **Frontend:** Vite + TypeScript
+- **Backend:** Vercel serverless functions
+- **Database:** Neon Postgres
+- **Auth:** Google Sign-In
+
 ## Features
 
 - Play solo vs. solo, or team up with friends on Red/Blue teams
